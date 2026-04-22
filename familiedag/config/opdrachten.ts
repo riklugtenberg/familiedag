@@ -7,15 +7,21 @@ export type QuizVraag = {
 
 export type MuziekFragment = {
   id: number;
-  audioUrl: string;
-  artiest: string;
-  titel: string;
+  /** Pad onder `public/`, bv. `/audio/o4-f1.mp3` */
+  audioSrc: string;
+  /** Startpunt in seconden in het audiobestand; bij een voorgesneden fragment meestal 0 */
+  startTijd: number;
+  /** Alleen voor de admin — nooit naar client sturen */
+  artiest?: string;
+  titel?: string;
 };
 
 export type QuizOpdracht = {
   id: string;
   type: 'quiz';
   naam: string;
+  /** Optioneel; wordt onder de titel op het startscherm en bij de quiz getoond */
+  ondertitel?: string;
   vragen: QuizVraag[];
 };
 
@@ -32,6 +38,8 @@ export type FotoOpdracht = {
   naam: string;
   voorbeeldFotoUrl: string;
   instructie: string;
+  /** Maximaal aantal uploads (standaard 3) */
+  maxFotos?: number;
 };
 
 export type Opdracht = QuizOpdracht | MuziekOpdracht | FotoOpdracht;
@@ -77,24 +85,86 @@ export const opdrachten: Opdracht[] = [
   {
     id: '2',
     type: 'quiz',
-    naam: 'Quiz: Sport & Bewegen',
+    naam: 'Boerelijke breinbrekers',
+    ondertitel: 'Raadsels voor wie verder denkt dan de wei lang is',
     vragen: [
       {
         id: 1,
-        vraag: 'Hoeveel spelers staan er in een voetbalteam op het veld?',
-        opties: ['9', '10', '11', '12'],
-        correct: 2,
-      },
-      {
-        id: 2,
-        vraag: 'In welk land is de Olympische Spelen ooit voor het eerst gehouden?',
-        opties: ['Italië', 'Griekenland', 'Egypte', 'Turkije'],
+        vraag:
+          'Een boer heeft 17 schapen. Op 9 na gaan ze allemaal dood. Hoeveel blijven er over?',
+        opties: ['8', '9', '17', '0'],
         correct: 1,
       },
       {
+        id: 2,
+        vraag: 'Wat kan door een weiland reizen zonder ooit te bewegen?',
+        opties: ['Wind', 'Schaduw', 'Een geluid', 'Een weg'],
+        correct: 2,
+      },
+      {
         id: 3,
-        vraag: 'Hoeveel sets wint een tennisser in een best-of-5?',
-        opties: ['2', '3', '4', '5'],
+        vraag:
+          'Een haan legt een ei precies op de nok van het dak van de schuur. Naar welke kant rolt het ei?',
+        opties: ['Links', 'Rechts', 'Naar de zon', 'Geen enkele kant'],
+        correct: 3,
+      },
+      {
+        id: 4,
+        vraag: 'Hoe verder je kijkt, hoe minder je ziet. Wat is het?',
+        opties: ['Mist', 'Donker', 'De horizon', 'Afstand'],
+        correct: 3,
+      },
+      {
+        id: 5,
+        vraag:
+          'Een boer heeft één lucifer. Hij komt in een donkere schuur met een olielamp, een houtkachel en een kaars. Wat steekt hij als eerste aan?',
+        opties: ['De lamp', 'De kachel', 'De kaars', 'De lucifer'],
+        correct: 3,
+      },
+      {
+        id: 6,
+        vraag:
+          'Wat wordt van jou, gebruikt door anderen, maar zie je zelf zelden?',
+        opties: ['Je stem', 'Je naam', 'Je gezicht', 'Je schaduw'],
+        correct: 1,
+      },
+      {
+        id: 7,
+        vraag: 'Welke maand heeft 28 dagen?',
+        opties: ['Februari', 'Alleen schrikkeljaar', 'December', 'Alle maanden'],
+        correct: 3,
+      },
+      {
+        id: 8,
+        vraag:
+          'Een boer kijkt uit het raam en ziet 6 koeien in een weiland. Terwijl hij kijkt, lopen er 4 weg. Hoeveel koeien ziet hij nog?',
+        opties: ['2', '4', '6', '10'],
+        correct: 2,
+      },
+      {
+        id: 9,
+        vraag: 'Hoe kan iemand acht dagen niet slapen?',
+        opties: ['Door koffie', 'Door medicijnen', 'Dat kan niet', 'Hij slaapt ’s nachts'],
+        correct: 3,
+      },
+      {
+        id: 10,
+        vraag:
+          'Wat heeft wortels die niemand ziet, groeit hoger dan bomen, stijgt nooit op, maar lijkt toch te groeien?',
+        opties: ['Mais', 'Een berg', 'Een wolk', 'Een schuur'],
+        correct: 1,
+      },
+      {
+        id: 11,
+        vraag: 'Wat wordt natter hoe meer het droogt?',
+        opties: ['Modder', 'Een handdoek', 'Gras', 'Een spons'],
+        correct: 1,
+      },
+      {
+        id: 12,
+        vraag:
+          'Je gooit mij weg als je me nodig hebt, en haalt me terug als je me niet meer nodig hebt. Wat ben ik?',
+        opties: ['Een visnet', 'Een anker', 'Een emmer', 'Een laars'],
         correct: 1,
       },
     ],
@@ -103,165 +173,55 @@ export const opdrachten: Opdracht[] = [
   // ── Opdracht 3 ──────────────────────────────────────────────────────────────
   {
     id: '3',
-    type: 'quiz',
-    naam: 'Quiz: Natuur & Dieren',
-    vragen: [
-      {
-        id: 1,
-        vraag: 'Hoeveel poten heeft een spin?',
-        opties: ['4', '6', '8', '10'],
-        correct: 2,
-      },
-      {
-        id: 2,
-        vraag: 'Welke planeet is de grootste in ons zonnestelsel?',
-        opties: ['Saturnus', 'Neptunus', 'Jupiter', 'Uranus'],
-        correct: 2,
-      },
-      {
-        id: 3,
-        vraag: 'Hoe noem je een groep wolven?',
-        opties: ['Roedel', 'Kudde', 'Zwerm', 'Troep'],
-        correct: 0,
-      },
-    ],
+    type: 'foto',
+    naam: 'Nep-foto challenge',
+    voorbeeldFotoUrl: '/images/nep-foto-voorbeeld-opdracht3.png',
+    maxFotos: 3,
+    instructie:
+      'Maak een foto van iemand of meerdere mensen binnen je team, met een nep foto. Hieronder vind je een voorbeeld. Je kunt tot 3 foto’s uploaden. Het team met de meest bijzondere foto krijgt een puntje.',
   },
 
   // ── Opdracht 4 ──────────────────────────────────────────────────────────────
   {
     id: '4',
-    type: 'quiz',
-    naam: 'Quiz: Film & TV',
-    vragen: [
-      {
-        id: 1,
-        vraag: 'In welk jaar verscheen de film Titanic?',
-        opties: ['1995', '1996', '1997', '1998'],
-        correct: 2,
-      },
-      {
-        id: 2,
-        vraag: 'Hoe heet de ijskoningin in de Disney-film Frozen?',
-        opties: ['Anna', 'Elsa', 'Olaf', 'Kristoff'],
-        correct: 1,
-      },
-      {
-        id: 3,
-        vraag: 'Welke acteur speelt Iron Man in de Marvel-films?',
-        opties: ['Chris Evans', 'Chris Hemsworth', 'Robert Downey Jr.', 'Mark Ruffalo'],
-        correct: 2,
-      },
-    ],
-  },
-
-  // ── Opdracht 5 ──────────────────────────────────────────────────────────────
-  {
-    id: '5',
     type: 'muziek',
-    naam: 'Muziek Herkennen – Deel 1',
+    naam: 'Muziek Herkennen',
     fragmenten: [
       {
         id: 1,
-        audioUrl: '/audio/5-fragment-1.mp3',
-        artiest: 'ABBA',
-        titel: 'Dancing Queen',
-      },
-      {
-        id: 2,
-        audioUrl: '/audio/5-fragment-2.mp3',
-        artiest: 'Queen',
-        titel: 'Bohemian Rhapsody',
-      },
-      {
-        id: 3,
-        audioUrl: '/audio/5-fragment-3.mp3',
-        artiest: 'Michael Jackson',
-        titel: 'Thriller',
-      },
-    ],
-  },
-
-  // ── Opdracht 6 ──────────────────────────────────────────────────────────────
-  {
-    id: '6',
-    type: 'muziek',
-    naam: 'Muziek Herkennen – Deel 2',
-    fragmenten: [
-      {
-        id: 1,
-        audioUrl: '/audio/6-fragment-1.mp3',
-        artiest: 'Adele',
-        titel: 'Rolling in the Deep',
-      },
-      {
-        id: 2,
-        audioUrl: '/audio/6-fragment-2.mp3',
-        artiest: 'Ed Sheeran',
-        titel: 'Shape of You',
-      },
-      {
-        id: 3,
-        audioUrl: '/audio/6-fragment-3.mp3',
-        artiest: 'Whitney Houston',
-        titel: 'I Will Always Love You',
-      },
-    ],
-  },
-
-  // ── Opdracht 7 ──────────────────────────────────────────────────────────────
-  {
-    id: '7',
-    type: 'muziek',
-    naam: 'Muziek Herkennen – Deel 3',
-    fragmenten: [
-      {
-        id: 1,
-        audioUrl: '/audio/7-fragment-1.mp3',
+        audioSrc: '/audio/audio-1.mp3',
+        startTijd: 30,
         artiest: 'The Beatles',
         titel: 'Let It Be',
       },
       {
         id: 2,
-        audioUrl: '/audio/7-fragment-2.mp3',
-        artiest: 'Madonna',
-        titel: 'Like a Prayer',
+        audioSrc: '/audio/o4-f2.mp3',
+        startTijd: 0,
+        artiest: 'Marco Borsato',
+        titel: 'Dromen zijn bedrog',
       },
       {
         id: 3,
-        audioUrl: '/audio/7-fragment-3.mp3',
-        artiest: 'David Bowie',
-        titel: 'Heroes',
+        audioSrc: '/audio/o4-f3.mp3',
+        startTijd: 0,
+        artiest: 'Queen',
+        titel: 'Bohemian Rhapsody',
+      },
+      {
+        id: 4,
+        audioSrc: '/audio/o4-f4.mp3',
+        startTijd: 0,
+        artiest: 'a-ha',
+        titel: 'Take On Me',
+      },
+      {
+        id: 5,
+        audioSrc: '/audio/o4-f5.mp3',
+        startTijd: 0,
+        artiest: 'Toto',
+        titel: 'Africa',
       },
     ],
-  },
-
-  // ── Opdracht 8 ──────────────────────────────────────────────────────────────
-  {
-    id: '8',
-    type: 'foto',
-    naam: 'Foto: Grappige Pose',
-    voorbeeldFotoUrl: '/images/voorbeeld-8.jpg',
-    instructie:
-      'Maak een foto waarbij jullie allemaal dezelfde grappige pose doen als op de voorbeeldfoto. Hoe gekker, hoe beter!',
-  },
-
-  // ── Opdracht 9 ──────────────────────────────────────────────────────────────
-  {
-    id: '9',
-    type: 'foto',
-    naam: 'Foto: Menselijke Piramide',
-    voorbeeldFotoUrl: '/images/voorbeeld-9.jpg',
-    instructie:
-      'Bouw een menselijke piramide en maak er een foto van. Zorg dat iedereen in beeld staat!',
-  },
-
-  // ── Opdracht 10 ─────────────────────────────────────────────────────────────
-  {
-    id: '10',
-    type: 'foto',
-    naam: 'Foto: Creatieve Uitdaging',
-    voorbeeldFotoUrl: '/images/voorbeeld-10.jpg',
-    instructie:
-      'Zoek samen iets in de omgeving dat de letter van jullie team vormt (bijv. een tak, stoelen, mensen) en maak er een foto van van bovenaf of van opzij.',
   },
 ];

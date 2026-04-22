@@ -21,3 +21,8 @@ export async function storageMget(keys: string[]): Promise<unknown[]> {
   if (keys.length === 0) return [];
   return redis.mget(...keys);
 }
+
+export async function storageDelete(keys: Array<string>): Promise<void> {
+  if (keys.length === 0) return;
+  await Promise.all(keys.map((k) => redis.del(k)));
+}

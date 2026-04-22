@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, startTransition } from 'react';
 import {
   opdrachten,
   teams,
@@ -8,6 +8,7 @@ import {
   type MuziekOpdracht,
   type FotoOpdracht,
 } from '@/config/opdrachten';
+import { fotoUrlsFromAntwoorden } from '@/lib/fotoAntwoorden';
 
 const ADMIN_PIN = '1212'; // tijdelijk niet in gebruik
 
@@ -28,10 +29,9 @@ export default function AdminPage() {
   const [juryScores, setJuryScores] = useState<Record<string, JuryScoreWaarde>>({});
   const [laden, setLaden] = useState(false);
   const [laadFout, setLaadFout] = useState('');
+  const [fotoLightbox, setFotoLightbox] = useState<{ src: string; alt: string } | null>(null);
 
-  useEffect(() => { laadData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function laadData() {
+  const laadData = useCallback(async () => {
     setLaden(true);
     setLaadFout('');
     try {
@@ -48,6 +48,74 @@ export default function AdminPage() {
       setLaadFout('Laden mislukt. Controleer de KV verbinding.');
     } finally {
       setLaden(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    startTransition(() => {
+      void laadData();
+    });
+  }, [laadData]);
+
+  useEffect(() => {
+    if (!fotoLightbox) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setFotoLightbox(null);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [fotoLightbox]);
+
+  async function verwijderInzending(
+    teamNaam: string,
+    opdrachtId: string,
+    titel: string
+  ) {
+    if (
+      !confirm(
+        `Inzending van ${teamNaam} voor “${titel}” verwijderen? Ook het jurycijfer (muziek/foto) voor dit team gaat mee.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/wis-inzending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: ADMIN_PIN, teamNaam, opdrachtId }),
+      });
+      if (!res.ok) throw new Error();
+      await laadData();
+    } catch {
+      alert('Verwijderen mislukt.');
+    }
+  }
+
+  async function verwijderAlleInzendingenVoorOpdracht(
+    opdrachtId: string,
+    titel: string
+  ) {
+    if (
+      !confirm(
+        `Alle inzendingen en juryscores voor “${titel}” wissen (alle teams)? Dit kan niet ongedaan worden.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/wis-inzending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pin: ADMIN_PIN,
+          opdrachtId,
+          wisAllesVoorOpdracht: true,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      await laadData();
+    } catch {
+      alert('Verwijderen mislukt.');
     }
   }
 
@@ -134,7 +202,19 @@ export default function AdminPage() {
         {/* QUIZ SECTIES */}
         {quizOpdrachten.map((opdracht) => (
           <section key={opdracht.id} className="bg-white rounded-2xl shadow-sm p-5 mb-6">
-            <h2 className="text-xl font-bold mb-4">📝 {opdracht.naam}</h2>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <h2 className="text-xl font-bold">📝 {opdracht.naam}</h2>
+              <button
+                type="button"
+                onClick={() =>
+                  verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
+                }
+                className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
+                style={{ minHeight: '40px' }}
+              >
+                Wis alle inzendingen
+              </button>
+            </div>
             <div className="flex flex-col gap-3">
               {teams.map((team) => {
                 const inzending = getInzending(team, opdracht.id);
@@ -145,13 +225,24 @@ export default function AdminPage() {
                     key={team}
                     className="border border-gray-200 rounded-xl p-4"
                   >
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center gap-2 mb-2 flex-wrap">
                       <p className="font-bold text-base">{team}</p>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <span className="bg-blue-100 text-blue-800 font-bold text-base px-3 py-1 rounded-full">
                           {score}/{opdracht.vragen.length}
                         </span>
                         <span className="text-xl">{inzending ? '✅' : '❌'}</span>
+                        {inzending ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              verwijderInzending(team, opdracht.id, opdracht.naam)
+                            }
+                            className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 active:bg-red-100 whitespace-nowrap"
+                          >
+                            Wis inzending
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                     {!inzending ? (
@@ -183,7 +274,19 @@ export default function AdminPage() {
         {/* MUZIEK SECTIES */}
         {muziekOpdrachten.map((opdracht) => (
           <section key={opdracht.id} className="bg-white rounded-2xl shadow-sm p-5 mb-6">
-            <h2 className="text-xl font-bold mb-4">🎵 {opdracht.naam}</h2>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <h2 className="text-xl font-bold">🎵 {opdracht.naam}</h2>
+              <button
+                type="button"
+                onClick={() =>
+                  verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
+                }
+                className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
+                style={{ minHeight: '40px' }}
+              >
+                Wis alle inzendingen
+              </button>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -197,9 +300,26 @@ export default function AdminPage() {
                     {teams.map((t) => {
                       const heeftIngestuurd = !!getInzending(t, opdracht.id);
                       return (
-                        <th key={t} className="pb-3 pr-4 font-semibold text-gray-600 whitespace-nowrap">
-                          <span>{t}</span>
-                          <span className="ml-1">{heeftIngestuurd ? '✅' : '❌'}</span>
+                        <th key={t} className="pb-3 pr-4 font-semibold text-gray-600 align-bottom">
+                          <div className="flex flex-col gap-1 items-start min-w-[5.5rem]">
+                            <span className="whitespace-nowrap">
+                              {t}{' '}
+                              <span className="font-normal">
+                                {heeftIngestuurd ? '✅' : '❌'}
+                              </span>
+                            </span>
+                            {heeftIngestuurd ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  verwijderInzending(t, opdracht.id, opdracht.naam)
+                                }
+                                className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1 active:bg-red-100 whitespace-nowrap"
+                              >
+                                Wis inzending
+                              </button>
+                            ) : null}
+                          </div>
                         </th>
                       );
                     })}
@@ -212,7 +332,7 @@ export default function AdminPage() {
                         Fragment {fi + 1}
                       </td>
                       <td className="py-3 pr-4 text-green-700 whitespace-nowrap">
-                        {fragment.artiest} — {fragment.titel}
+                        {fragment.artiest ?? '?'} — {fragment.titel ?? '?'}
                       </td>
                       {teams.map((team) => {
                         const inzending = getInzending(team, opdracht.id);
@@ -292,44 +412,90 @@ export default function AdminPage() {
         {/* FOTO SECTIES */}
         {fotoOpdrachten.map((opdracht) => (
           <section key={opdracht.id} className="bg-white rounded-2xl shadow-sm p-5 mb-6">
-            <h2 className="text-xl font-bold mb-4">📷 {opdracht.naam}</h2>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <h2 className="text-xl font-bold">📷 {opdracht.naam}</h2>
+              <button
+                type="button"
+                onClick={() =>
+                  verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
+                }
+                className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
+                style={{ minHeight: '40px' }}
+              >
+                Wis alle inzendingen
+              </button>
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {teams.map((team) => {
                 const inzending = getInzending(team, opdracht.id);
-                const antwoorden = inzending?.antwoorden as { fotoUrl?: string } | undefined;
+                const fotoUrls = fotoUrlsFromAntwoorden(inzending?.antwoorden);
                 const juryScore = getJuryScore(opdracht.id, team) as FotoJuryScore | null;
                 const punten = juryScore?.punten ?? '';
 
                 return (
                   <div key={team} className="border border-gray-200 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                       <p className="font-bold text-base">{team}</p>
-                      <span className="text-xl">{inzending ? '✅' : '❌'}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {inzending ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              verwijderInzending(team, opdracht.id, opdracht.naam)
+                            }
+                            className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 active:bg-red-100 whitespace-nowrap"
+                          >
+                            Wis inzending
+                          </button>
+                        ) : null}
+                        <span className="text-xl">{inzending ? '✅' : '❌'}</span>
+                      </div>
                     </div>
                     {!inzending ? (
                       <p className="text-sm text-gray-400">Nog niet ingestuurd</p>
                     ) : (
                       <div className="flex flex-col gap-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Voorbeeld</p>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={opdracht.voorbeeldFotoUrl}
-                              alt="Voorbeeld"
-                              className="w-full rounded-lg object-cover bg-gray-100"
-                              style={{ aspectRatio: '4/3' }}
-                            />
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Ingestuurd</p>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={antwoorden?.fotoUrl}
-                              alt={`Foto van ${team}`}
-                              className="w-full rounded-lg object-cover bg-gray-100"
-                              style={{ aspectRatio: '4/3' }}
-                            />
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Voorbeeld</p>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={opdracht.voorbeeldFotoUrl}
+                            alt="Voorbeeld"
+                            className="w-full max-w-xs rounded-lg object-cover bg-gray-100"
+                            style={{ aspectRatio: '4/3' }}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-2">
+                            Ingestuurde foto’s ({fotoUrls.length})
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {fotoUrls.map((url, fi) => (
+                              <div key={fi}>
+                                <button
+                                  type="button"
+                                  className="block w-full rounded-lg overflow-hidden bg-gray-100 ring-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-zoom-in"
+                                  onClick={() =>
+                                    setFotoLightbox({
+                                      src: url,
+                                      alt: `Foto ${fi + 1} van ${team}`,
+                                    })
+                                  }
+                                  title="Klik voor grotere weergave"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={url}
+                                    alt={`Foto ${fi + 1} van ${team}`}
+                                    className="w-full object-cover hover:opacity-95 transition-opacity"
+                                    style={{ aspectRatio: '4/3' }}
+                                  />
+                                </button>
+                                <p className="text-xs text-gray-400 mt-1 text-center">
+                                  {fi + 1}
+                                </p>
+                              </div>
+                            ))}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -382,6 +548,38 @@ export default function AdminPage() {
           </div>
         </section>
       </div>
+
+      {fotoLightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 sm:p-8"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Vergrote foto"
+          onClick={() => setFotoLightbox(null)}
+        >
+          <button
+            type="button"
+            className="absolute top-3 right-3 z-60 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white text-xl font-bold hover:bg-white/25 active:bg-white/35"
+            onClick={(e) => {
+              e.stopPropagation();
+              setFotoLightbox(null);
+            }}
+            aria-label="Sluiten"
+          >
+            ✕
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fotoLightbox.src}
+            alt={fotoLightbox.alt}
+            className="max-h-[min(92vh,100%)] max-w-[min(96vw,100%)] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <p className="absolute bottom-4 left-0 right-0 text-center text-xs text-white/70 pointer-events-none">
+            Klik buiten de foto of druk op Esc om te sluiten
+          </p>
+        </div>
+      )}
     </div>
   );
 }

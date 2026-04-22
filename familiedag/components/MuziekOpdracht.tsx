@@ -4,60 +4,81 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import type { MuziekOpdracht as MuziekOpdrachtType } from '@/config/opdrachten';
 
+const FRAGMENT_DUUR = 10;
+
 type Props = {
   opdracht: MuziekOpdrachtType;
   teamNaam: string;
 };
 
 export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
-  const [antwoorden, setAntwoorden] = useState<{ artiest: string; titel: string }[]>(
+  const [antwoorden, setAntwoorden] = useState<Array<{ artiest: string; titel: string }>>(() =>
     opdracht.fragmenten.map(() => ({ artiest: '', titel: '' }))
   );
   const [speeltIndex, setSpeeltIndex] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [bezig, setBezig] = useState(false);
   const [fout, setFout] = useState('');
-  const audioRefs = useRef<(HTMLAudioElement | null)[]>(
+
+  const audioRefs = useRef<Array<HTMLAudioElement | null>>(
     new Array(opdracht.fragmenten.length).fill(null)
   );
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const speeltIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const refs = audioRefs.current;
-    return () => {
-      refs.forEach((a) => {
-        if (a) {
-          a.pause();
-          a.currentTime = 0;
-        }
-      });
-    };
-  }, []);
+    speeltIndexRef.current = speeltIndex;
+  }, [speeltIndex]);
+
+  function stopHuidig() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    const idx = speeltIndexRef.current;
+    if (idx !== null) {
+      try {
+        audioRefs.current[idx]?.pause();
+      } catch {
+        /* negeer */
+      }
+    }
+    setSpeeltIndex(null);
+  }
 
   function toggleSpelen(index: number) {
+    if (speeltIndex === index) {
+      stopHuidig();
+      return;
+    }
+    stopHuidig();
+
+    const fragment = opdracht.fragmenten[index];
     const audio = audioRefs.current[index];
     if (!audio) return;
 
-    if (speeltIndex === index) {
+    const startTijd = Math.max(0, fragment.startTijd);
+    try {
       audio.pause();
-      setSpeeltIndex(null);
-    } else {
-      if (speeltIndex !== null) {
-        const huidig = audioRefs.current[speeltIndex];
-        if (huidig) {
-          huidig.pause();
-          huidig.currentTime = 0;
-        }
-      }
-      audio.play().catch(() => {});
-      setSpeeltIndex(index);
+      audio.currentTime = startTijd;
+      void audio.play();
+    } catch {
+      return;
     }
+
+    setSpeeltIndex(index);
+    timerRef.current = setTimeout(() => {
+      try {
+        audio.pause();
+      } catch {
+        /* negeer */
+      }
+      setSpeeltIndex(null);
+      timerRef.current = null;
+    }, FRAGMENT_DUUR * 1000);
   }
 
-  function updateAntwoord(
-    index: number,
-    veld: 'artiest' | 'titel',
-    waarde: string
-  ) {
+  function updateAntwoord(index: number, veld: 'artiest' | 'titel', waarde: string) {
     const nieuw = [...antwoorden];
     nieuw[index] = { ...nieuw[index], [veld]: waarde };
     setAntwoorden(nieuw);
@@ -74,7 +95,6 @@ export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
         body: JSON.stringify({ teamNaam, opdrachtId: opdracht.id, antwoorden }),
       });
       if (!res.ok) throw new Error();
-      localStorage.setItem(`gedaan:${teamNaam}:${opdracht.id}`, '1');
       setSubmitted(true);
     } catch {
       setFout('Er ging iets mis. Probeer het opnieuw.');
@@ -104,10 +124,29 @@ export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col p-6 pb-12 bg-white max-w-lg mx-auto">
+      <div className="hidden" aria-hidden>
+        {opdracht.fragmenten.map((fragment, i) => (
+          <audio
+            key={fragment.id}
+            ref={(el) => {
+              audioRefs.current[i] = el;
+            }}
+            src={fragment.audioSrc}
+            preload="auto"
+            onEnded={() => {
+              if (speeltIndexRef.current !== i) return;
+              if (timerRef.current) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+              }
+              setSpeeltIndex(null);
+            }}
+          />
+        ))}
+      </div>
+
       <div className="mb-6">
-        <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">
-          {teamNaam}
-        </p>
+        <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">{teamNaam}</p>
         <h1 className="text-2xl font-bold mt-1">{opdracht.naam}</h1>
         <p className="text-base text-gray-600 mt-2">
           Herken je de nummers? Vul voor elk fragment de artiest en de titel in.
@@ -120,7 +159,6 @@ export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
             key={fragment.id}
             className="border-2 border-gray-200 rounded-2xl p-4 flex flex-col gap-4"
           >
-            {/* Play knop + label */}
             <div className="flex items-center gap-4">
               <button
                 type="button"
@@ -130,24 +168,16 @@ export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
               >
                 {speeltIndex === i ? '⏸' : '▶'}
               </button>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-lg font-bold">Fragment {i + 1}</p>
                 <p className="text-sm text-gray-500">
-                  {speeltIndex === i ? 'Speelt af…' : 'Druk om af te spelen'}
+                  {speeltIndex === i
+                    ? 'Speelt af…'
+                    : 'Druk op ▶ om het fragment te horen (ongeveer 10 seconden).'}
                 </p>
               </div>
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <audio
-                ref={(el) => {
-                  audioRefs.current[i] = el;
-                }}
-                src={fragment.audioUrl}
-                onEnded={() => setSpeeltIndex(null)}
-                preload="none"
-              />
             </div>
 
-            {/* Invoervelden */}
             <div className="flex flex-col gap-3">
               <input
                 type="text"

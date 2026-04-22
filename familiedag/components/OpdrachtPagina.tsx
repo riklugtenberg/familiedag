@@ -1,13 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import type { Opdracht } from '@/config/opdrachten';
 import TeamKiezer from './TeamKiezer';
 import QuizOpdracht from './QuizOpdracht';
 import MuziekOpdracht from './MuziekOpdracht';
 import FotoOpdracht from './FotoOpdracht';
+import { getTeamFromCookie } from '@/lib/teamCookie';
+import { saveSessionTeam } from '@/lib/sessionClient';
 
-const TEAM_KEY = 'familiedag:team';
+async function fetchSubmissionStatus(
+  team: string,
+  opdrachtId: string
+): Promise<boolean> {
+  const res = await fetch(
+    `/api/submission-status?teamNaam=${encodeURIComponent(team)}&opdrachtId=${encodeURIComponent(opdrachtId)}`
+  );
+  if (!res.ok) throw new Error('status');
+  const data = (await res.json()) as { submitted?: boolean };
+  return Boolean(data.submitted);
+}
 
 type Props = {
   opdracht: Opdracht;
@@ -19,19 +31,48 @@ export default function OpdrachtPagina({ opdracht }: Props) {
   const [geladen, setGeladen] = useState(false);
 
   useEffect(() => {
-    const opgeslagen = localStorage.getItem(TEAM_KEY);
-    if (opgeslagen) {
-      setTeamNaam(opgeslagen);
-      if (localStorage.getItem(`gedaan:${opgeslagen}:${opdracht.id}`)) {
-        setAlGedaan(true);
-      }
+    const opgeslagen = getTeamFromCookie();
+
+    if (!opgeslagen) {
+      startTransition(() => setGeladen(true));
+      return;
     }
-    setGeladen(true);
+
+    startTransition(() => setTeamNaam(opgeslagen));
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const submitted = await fetchSubmissionStatus(opgeslagen, opdracht.id);
+        if (!cancelled) {
+          startTransition(() => setAlGedaan(submitted));
+        }
+      } catch {
+        if (!cancelled) startTransition(() => setAlGedaan(false));
+      } finally {
+        if (!cancelled) startTransition(() => setGeladen(true));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [opdracht.id]);
 
-  function handleTeamSelected(team: string) {
-    localStorage.setItem(TEAM_KEY, team);
+  async function handleTeamSelected(team: string) {
+    const ok = await saveSessionTeam(team);
+    if (!ok) return;
+
     setTeamNaam(team);
+    setGeladen(false);
+    try {
+      const submitted = await fetchSubmissionStatus(team, opdracht.id);
+      setAlGedaan(submitted);
+    } catch {
+      setAlGedaan(false);
+    } finally {
+      setGeladen(true);
+    }
   }
 
   // Voorkom flash van teamkiezer bij page-load

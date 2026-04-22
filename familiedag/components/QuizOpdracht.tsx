@@ -43,7 +43,6 @@ export default function QuizOpdracht({ opdracht, teamNaam }: Props) {
         body: JSON.stringify({ teamNaam, opdrachtId: opdracht.id, antwoorden }),
       });
       if (!res.ok) throw new Error();
-      localStorage.setItem(`gedaan:${teamNaam}:${opdracht.id}`, '1');
       setSubmitted(true);
     } catch {
       setFout('Er ging iets mis. Probeer het opnieuw.');
@@ -79,6 +78,9 @@ export default function QuizOpdracht({ opdracht, teamNaam }: Props) {
           {teamNaam}
         </p>
         <h1 className="text-2xl font-bold mt-1">{opdracht.naam}</h1>
+        {opdracht.ondertitel ? (
+          <p className="text-sm text-gray-500 mt-1 leading-snug">{opdracht.ondertitel}</p>
+        ) : null}
         <p className="text-base text-gray-500 mt-1">
           Vraag {huidigeVraag + 1} van {opdracht.vragen.length}
         </p>
