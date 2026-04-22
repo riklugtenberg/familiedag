@@ -11,6 +11,7 @@ import {
 
 const ADMIN_PIN = '1212'; // tijdelijk niet in gebruik
 
+
 type Inzending = {
   teamNaam: string;
   opdrachtId: string;
