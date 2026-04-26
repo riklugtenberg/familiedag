@@ -16,6 +16,6 @@ export async function GET(req: NextRequest) {
   }
 
   const key = `team:${teamNaam}:opdracht:${opdrachtId}`;
-  const data = await storageGet(key);
-  return NextResponse.json({ submitted: data !== null });
+  const data = await storageGet<{ antwoorden?: unknown }>(key);
+  return NextResponse.json({ submitted: data !== null, antwoorden: data?.antwoorden ?? null });
 }

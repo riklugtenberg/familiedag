@@ -42,7 +42,32 @@ export type FotoOpdracht = {
   maxFotos?: number;
 };
 
-export type Opdracht = QuizOpdracht | MuziekOpdracht | FotoOpdracht;
+export type TimingOpdracht = {
+  id: string;
+  type: 'timing';
+  naam: string;
+  /** Doeltijd in seconden */
+  doelTijd: number;
+  /** Maximaal aantal pogingen (standaard 3) */
+  maxPogingen?: number;
+};
+
+export type EmojiVraag = {
+  id: number;
+  emoji: string;
+  vraagLabel: string; // bijv. "Welke film?" of "Welk liedje?"
+  antwoord: string;   // alleen voor admin
+};
+
+export type EmojiOpdracht = {
+  id: string;
+  type: 'emoji';
+  naam: string;
+  ondertitel?: string;
+  vragen: EmojiVraag[];
+};
+
+export type Opdracht = QuizOpdracht | MuziekOpdracht | FotoOpdracht | TimingOpdracht | EmojiOpdracht;
 
 export const teams: string[] = [
   'Jolien',
@@ -222,6 +247,35 @@ export const opdrachten: Opdracht[] = [
         artiest: 'Toto',
         titel: 'Africa',
       },
+    ],
+  },
+
+  // ── Opdracht 5 ──────────────────────────────────────────────────────────────
+  {
+    id: '5',
+    type: 'timing',
+    naam: 'Timing Challenge',
+    doelTijd: 30,
+    maxPogingen: 3,
+  },
+
+  // ── Opdracht 6 ──────────────────────────────────────────────────────────────
+  {
+    id: '6',
+    type: 'emoji',
+    naam: 'Emoji-raadsel',
+    ondertitel: 'Type het antwoord — geen hints!',
+    vragen: [
+      { id: 1,  emoji: '🦁 👑 🌍',       vraagLabel: 'Welke film?',        antwoord: 'The Lion King' },
+      { id: 2,  emoji: '❄️ 👸 ⛄',        vraagLabel: 'Welke film?',        antwoord: 'Frozen' },
+      { id: 3,  emoji: '🕷️ 🕸️ 🗽',      vraagLabel: 'Welke superheld?',   antwoord: 'Spider-Man' },
+      { id: 4,  emoji: '🐟 🌊 🔍',        vraagLabel: 'Welke film?',        antwoord: 'Finding Nemo' },
+      { id: 5,  emoji: '🧙‍♂️ ⚡ 📚',     vraagLabel: 'Welke boekenreeks?', antwoord: 'Harry Potter' },
+      { id: 6,  emoji: '🍕 🐢 🥋',        vraagLabel: 'Welke serie?',       antwoord: 'Ninja Turtles' },
+      { id: 7,  emoji: '🌺 🌊 🏝️',       vraagLabel: 'Welke film?',        antwoord: 'Moana' },
+      { id: 8,  emoji: '🏎️ ⚡ 🏁',       vraagLabel: 'Welke film?',        antwoord: 'Cars' },
+      { id: 9,  emoji: '👶 🦈 🎵',        vraagLabel: 'Welk liedje?',       antwoord: 'Baby Shark' },
+      { id: 10, emoji: '🤖 🗑️ ❤️',       vraagLabel: 'Welke film?',        antwoord: 'WALL-E' },
     ],
   },
 ];

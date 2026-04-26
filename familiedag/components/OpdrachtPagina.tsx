@@ -6,19 +6,35 @@ import TeamKiezer from './TeamKiezer';
 import QuizOpdracht from './QuizOpdracht';
 import MuziekOpdracht from './MuziekOpdracht';
 import FotoOpdracht from './FotoOpdracht';
+import TimingOpdracht from './TimingOpdracht';
+import EmojiOpdracht from './EmojiOpdracht';
 import { getTeamFromCookie } from '@/lib/teamCookie';
 import { saveSessionTeam } from '@/lib/sessionClient';
+
+type SubmissionStatus = {
+  submitted: boolean;
+  antwoorden: unknown;
+};
+
+function isVoltooid(type: string, status: SubmissionStatus): boolean {
+  if (!status.submitted) return false;
+  if (type === 'timing') {
+    const a = status.antwoorden as { voltooid?: boolean } | null;
+    return Boolean(a?.voltooid);
+  }
+  return true;
+}
 
 async function fetchSubmissionStatus(
   team: string,
   opdrachtId: string
-): Promise<boolean> {
+): Promise<SubmissionStatus> {
   const res = await fetch(
     `/api/submission-status?teamNaam=${encodeURIComponent(team)}&opdrachtId=${encodeURIComponent(opdrachtId)}`
   );
   if (!res.ok) throw new Error('status');
-  const data = (await res.json()) as { submitted?: boolean };
-  return Boolean(data.submitted);
+  const data = (await res.json()) as { submitted?: boolean; antwoorden?: unknown };
+  return { submitted: Boolean(data.submitted), antwoorden: data.antwoorden ?? null };
 }
 
 type Props = {
@@ -28,6 +44,7 @@ type Props = {
 export default function OpdrachtPagina({ opdracht }: Props) {
   const [teamNaam, setTeamNaam] = useState<string | null>(null);
   const [alGedaan, setAlGedaan] = useState(false);
+  const [bestaandeAntwoorden, setBestaandeAntwoorden] = useState<unknown>(null);
   const [geladen, setGeladen] = useState(false);
 
   useEffect(() => {
@@ -43,9 +60,13 @@ export default function OpdrachtPagina({ opdracht }: Props) {
 
     (async () => {
       try {
-        const submitted = await fetchSubmissionStatus(opgeslagen, opdracht.id);
+        const status = await fetchSubmissionStatus(opgeslagen, opdracht.id);
         if (!cancelled) {
-          startTransition(() => setAlGedaan(submitted));
+          const voltooid = isVoltooid(opdracht.type, status);
+          startTransition(() => {
+            setAlGedaan(voltooid);
+            setBestaandeAntwoorden(status.antwoorden);
+          });
         }
       } catch {
         if (!cancelled) startTransition(() => setAlGedaan(false));
@@ -66,8 +87,9 @@ export default function OpdrachtPagina({ opdracht }: Props) {
     setTeamNaam(team);
     setGeladen(false);
     try {
-      const submitted = await fetchSubmissionStatus(team, opdracht.id);
-      setAlGedaan(submitted);
+      const status = await fetchSubmissionStatus(team, opdracht.id);
+      setAlGedaan(isVoltooid(opdracht.type, status));
+      setBestaandeAntwoorden(status.antwoorden);
     } catch {
       setAlGedaan(false);
     } finally {
@@ -104,6 +126,21 @@ export default function OpdrachtPagina({ opdracht }: Props) {
 
   if (opdracht.type === 'foto') {
     return <FotoOpdracht opdracht={opdracht} teamNaam={teamNaam} />;
+  }
+
+  if (opdracht.type === 'emoji') {
+    return <EmojiOpdracht opdracht={opdracht} teamNaam={teamNaam} />;
+  }
+
+  if (opdracht.type === 'timing') {
+    const a = bestaandeAntwoorden as { pogingen?: number[] } | null;
+    return (
+      <TimingOpdracht
+        opdracht={opdracht}
+        teamNaam={teamNaam}
+        initialPogingen={a?.pogingen ?? []}
+      />
+    );
   }
 
   return null;

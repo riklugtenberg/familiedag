@@ -4,6 +4,7 @@ import { useState, useEffect, startTransition } from 'react';
 import Link from 'next/link';
 import { opdrachten } from '@/config/opdrachten';
 import TeamKiezer from '@/components/TeamKiezer';
+import FraudeMeldenPanel from '@/components/FraudeMeldenPanel';
 import { getTeamFromCookie } from '@/lib/teamCookie';
 import { saveSessionTeam } from '@/lib/sessionClient';
 
@@ -11,6 +12,7 @@ const typeEmoji: Record<string, string> = {
   quiz: '📝',
   muziek: '🎵',
   foto: '📷',
+  timing: '⏱',
 };
 
 export default function HomePage() {
@@ -18,9 +20,8 @@ export default function HomePage() {
   const [wijzigenOpen, setWijzigenOpen] = useState(false);
   const [geladen, setGeladen] = useState(false);
   /** null = laden van Redis */
-  const [ingeleverd, setIngeleverd] = useState<Record<string, boolean> | null>(
-    null
-  );
+  const [ingeleverd, setIngeleverd] = useState<Record<string, boolean> | null>(null);
+  const [pogingen, setPogingen] = useState<Record<string, { gedaan: number; max: number }>>({});
 
   useEffect(() => {
     startTransition(() => {
@@ -45,9 +46,11 @@ export default function HomePage() {
         if (!res.ok) throw new Error();
         const data = (await res.json()) as {
           submitted?: Record<string, boolean>;
+          pogingen?: Record<string, { gedaan: number; max: number }>;
         };
         if (!cancelled) {
           setIngeleverd(data.submitted ?? {});
+          setPogingen(data.pogingen ?? {});
         }
       } catch {
         if (!cancelled) setIngeleverd({});
@@ -128,7 +131,12 @@ export default function HomePage() {
                         Ingeleverd <span className="text-green-600">✅</span>
                       </span>
                     )}
-                    {done === false && (
+                    {done === false && pogingen[opdracht.id] && (
+                      <span className="text-orange-500 font-medium">
+                        Bezig — {pogingen[opdracht.id].gedaan}/{pogingen[opdracht.id].max} pogingen 🔄
+                      </span>
+                    )}
+                    {done === false && !pogingen[opdracht.id] && (
                       <span>
                         Nog niet ingeleverd <span className="text-red-500">❌</span>
                       </span>
@@ -141,7 +149,9 @@ export default function HomePage() {
           })}
         </div>
 
-        <div className="mt-10 flex justify-center gap-6">
+        <FraudeMeldenPanel melderTeam={team} />
+
+        <div className="mt-8 flex justify-center gap-6">
           <Link href="/qr" className="text-sm text-gray-400 underline">
             QR-codes
           </Link>

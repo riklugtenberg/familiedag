@@ -13,9 +13,23 @@ export async function GET(req: NextRequest) {
   const values = await storageMget(keys);
 
   const submitted: Record<string, boolean> = {};
+  const pogingen: Record<string, { gedaan: number; max: number }> = {};
+
   opdrachten.forEach((o, i) => {
-    submitted[o.id] = values[i] !== null;
+    const data = values[i] as { antwoorden?: { voltooid?: boolean; pogingen?: number[] } } | null;
+    if (o.type === 'timing') {
+      const voltooid = Boolean(data?.antwoorden?.voltooid);
+      submitted[o.id] = voltooid;
+      if (data && !voltooid) {
+        pogingen[o.id] = {
+          gedaan: data.antwoorden?.pogingen?.length ?? 0,
+          max: o.maxPogingen ?? 3,
+        };
+      }
+    } else {
+      submitted[o.id] = data !== null;
+    }
   });
 
-  return NextResponse.json({ submitted });
+  return NextResponse.json({ submitted, pogingen });
 }
