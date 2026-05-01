@@ -18,3 +18,47 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* /qr — één QR-code per A4 */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm;
+  }
+
+  body:has(.qr-a4-root) {
+    background: #fff !important;
+  }
+
+  .qr-a4-root {
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  .qr-screen-only {
+    display: none !important;
+  }
+
+  .qr-a4-pages {
+    display: block !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  .qr-a4-page {
+    box-sizing: border-box;
+    min-height: calc(100vh - 28mm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .qr-a4-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+    min-height: calc(100vh - 28mm);
+  }
+}

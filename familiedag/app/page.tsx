@@ -13,6 +13,8 @@ const typeEmoji: Record<string, string> = {
   muziek: '🎵',
   foto: '📷',
   timing: '⏱',
+  emoji: '🔤',
+  gepland: '📋',
 };
 
 export default function HomePage() {
@@ -120,26 +122,32 @@ export default function HomePage() {
                       </p>
                     ) : null}
                   <p className="text-sm text-gray-500 capitalize">
-                    {opdracht.type} opdracht
+                    {opdracht.type === 'gepland' ? 'volgt later' : `${opdracht.type} opdracht`}
                   </p>
                   <p className="text-sm mt-1 text-gray-600">
-                    {done === null && (
-                      <span className="text-gray-400">Status laden…</span>
-                    )}
-                    {done === true && (
-                      <span>
-                        Ingeleverd <span className="text-green-600">✅</span>
-                      </span>
-                    )}
-                    {done === false && pogingen[opdracht.id] && (
-                      <span className="text-orange-500 font-medium">
-                        Bezig — {pogingen[opdracht.id].gedaan}/{pogingen[opdracht.id].max} pogingen 🔄
-                      </span>
-                    )}
-                    {done === false && !pogingen[opdracht.id] && (
-                      <span>
-                        Nog niet ingeleverd <span className="text-red-500">❌</span>
-                      </span>
+                    {opdracht.type === 'gepland' ? (
+                      <span className="text-gray-500">Nog niet beschikbaar</span>
+                    ) : (
+                      <>
+                        {done === null && (
+                          <span className="text-gray-400">Status laden…</span>
+                        )}
+                        {done === true && (
+                          <span>
+                            Ingeleverd <span className="text-green-600">✅</span>
+                          </span>
+                        )}
+                        {done === false && pogingen[opdracht.id] && (
+                          <span className="text-orange-500 font-medium">
+                            Bezig — {pogingen[opdracht.id].gedaan}/{pogingen[opdracht.id].max} pogingen 🔄
+                          </span>
+                        )}
+                        {done === false && !pogingen[opdracht.id] && (
+                          <span>
+                            Nog niet ingeleverd <span className="text-red-500">❌</span>
+                          </span>
+                        )}
+                      </>
                     )}
                   </p>
                 </div>

@@ -67,7 +67,20 @@ export type EmojiOpdracht = {
   vragen: EmojiVraag[];
 };
 
-export type Opdracht = QuizOpdracht | MuziekOpdracht | FotoOpdracht | TimingOpdracht | EmojiOpdracht;
+/** Placeholder tot de opdracht is ingevuld; geen inzending. */
+export type GeplandeOpdracht = {
+  id: string;
+  type: 'gepland';
+  naam: string;
+};
+
+export type Opdracht =
+  | QuizOpdracht
+  | MuziekOpdracht
+  | FotoOpdracht
+  | TimingOpdracht
+  | EmojiOpdracht
+  | GeplandeOpdracht;
 
 export const teams: string[] = [
   'Jolien',
@@ -278,4 +291,12 @@ export const opdrachten: Opdracht[] = [
       { id: 10, emoji: '🤖 🗑️ ❤️',       vraagLabel: 'Welke film?',        antwoord: 'WALL-E' },
     ],
   },
+
+  // ── Opdracht 7 t/m 12 (inhoud volgt later) ─────────────────────────────────
+  { id: '7', type: 'gepland', naam: 'Opdracht 7' },
+  { id: '8', type: 'gepland', naam: 'Opdracht 8' },
+  { id: '9', type: 'gepland', naam: 'Opdracht 9' },
+  { id: '10', type: 'gepland', naam: 'Opdracht 10' },
+  { id: '11', type: 'gepland', naam: 'Opdracht 11' },
+  { id: '12', type: 'gepland', naam: 'Opdracht 12' },
 ];

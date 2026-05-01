@@ -55,6 +55,14 @@ export default function OpdrachtPagina({ opdracht }: Props) {
       return;
     }
 
+    if (opdracht.type === 'gepland') {
+      startTransition(() => {
+        setTeamNaam(opgeslagen);
+        setGeladen(true);
+      });
+      return;
+    }
+
     startTransition(() => setTeamNaam(opgeslagen));
     let cancelled = false;
 
@@ -78,11 +86,17 @@ export default function OpdrachtPagina({ opdracht }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [opdracht.id]);
+  }, [opdracht.id, opdracht.type]);
 
   async function handleTeamSelected(team: string) {
     const ok = await saveSessionTeam(team);
     if (!ok) return;
+
+    if (opdracht.type === 'gepland') {
+      setTeamNaam(team);
+      setGeladen(true);
+      return;
+    }
 
     setTeamNaam(team);
     setGeladen(false);
@@ -112,6 +126,19 @@ export default function OpdrachtPagina({ opdracht }: Props) {
         <p className="text-lg text-gray-500 text-center mt-3">
           {teamNaam} heeft deze opdracht al gedaan.
         </p>
+      </div>
+    );
+  }
+
+  if (opdracht.type === 'gepland') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-white">
+        <div className="text-7xl mb-6">📋</div>
+        <h2 className="text-2xl font-bold text-center text-gray-900">{opdracht.naam}</h2>
+        <p className="text-lg text-gray-500 text-center mt-4 max-w-sm">
+          Deze opdracht wordt later toegevoegd. Kom later nog eens terug.
+        </p>
+        <p className="text-sm text-gray-400 mt-6">Team: {teamNaam}</p>
       </div>
     );
   }
