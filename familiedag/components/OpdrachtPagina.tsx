@@ -5,9 +5,12 @@ import type { Opdracht } from '@/config/opdrachten';
 import TeamKiezer from './TeamKiezer';
 import QuizOpdracht from './QuizOpdracht';
 import MuziekOpdracht from './MuziekOpdracht';
+import GeluidOpdracht from './GeluidOpdracht';
 import FotoOpdracht from './FotoOpdracht';
 import TimingOpdracht from './TimingOpdracht';
 import EmojiOpdracht from './EmojiOpdracht';
+import KaartOpdracht from './KaartOpdracht';
+import type { GeluidOpdrachtClient, KaartOpdrachtClient } from '@/config/opdrachten';
 import { getTeamFromCookie } from '@/lib/teamCookie';
 import { saveSessionTeam } from '@/lib/sessionClient';
 
@@ -151,12 +154,20 @@ export default function OpdrachtPagina({ opdracht }: Props) {
     return <MuziekOpdracht opdracht={opdracht} teamNaam={teamNaam} />;
   }
 
+  if (opdracht.type === 'geluid') {
+    return <GeluidOpdracht opdracht={opdracht as GeluidOpdrachtClient} teamNaam={teamNaam} />;
+  }
+
   if (opdracht.type === 'foto') {
     return <FotoOpdracht opdracht={opdracht} teamNaam={teamNaam} />;
   }
 
   if (opdracht.type === 'emoji') {
     return <EmojiOpdracht opdracht={opdracht} teamNaam={teamNaam} />;
+  }
+
+  if (opdracht.type === 'kaart') {
+    return <KaartOpdracht opdracht={opdracht as KaartOpdrachtClient} teamNaam={teamNaam} />;
   }
 
   if (opdracht.type === 'timing') {

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" aria-hidden="true">
+  <title>Sri Lanka vlag (vereenvoudigd)</title>
+  <!-- Gouden rand -->
+  <rect width="1200" height="600" fill="#F7B718"/>
+  <rect x="10" y="10" width="1180" height="580" fill="#941C22"/>
+  <!-- Groen en saffraan aan de hijs -->
+  <rect x="10" y="10" width="78" height="580" fill="#005641"/>
+  <rect x="88" y="10" width="78" height="580" fill="#EB7400"/>
+  <!-- Leeuwveld -->
+  <rect x="166" y="10" width="1024" height="580" fill="#8D153A"/>
+  <!-- Vier bo-bladeren (hoeken van het leeuwveld) -->
+  <g fill="#F7B718" opacity="0.95">
+    <ellipse cx="230" cy="95" rx="22" ry="34" transform="rotate(-25 230 95)"/>
+    <ellipse cx="1140" cy="95" rx="22" ry="34" transform="rotate(25 1140 95)"/>
+    <ellipse cx="230" cy="505" rx="22" ry="34" transform="rotate(25 230 505)"/>
+    <ellipse cx="1140" cy="505" rx="22" ry="34" transform="rotate(-25 1140 505)"/>
+  </g>
+  <!-- Vereenvoudigde gouden leeuw + zwaard (centrum) -->
+  <g transform="translate(620 300)" fill="#F7B718" stroke="#C9A000" stroke-width="2">
+    <ellipse cx="0" cy="15" rx="88" ry="62"/>
+    <circle cx="72" cy="-8" r="42"/>
+    <path
+      d="M 40 -48 L 52 -78 L 68 -52 L 82 -72 L 95 -45 L 105 -65 L 118 -35 L 95 -18 Z"
+      stroke-linejoin="round"
+    />
+    <path d="M -35 -55 L 25 -105 L 38 -95 L 5 -50 Z" fill="#E8D89A"/>
+    <line x1="-50" y1="-75" x2="35" y2="-115" stroke="#C9A000" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>

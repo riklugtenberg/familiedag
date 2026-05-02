@@ -1,9 +1,27 @@
-export type QuizVraag = {
+export type QuizVraagMeerkeuze = {
   id: number;
   vraag: string;
-  opties: string[];
+  opties: Array<string>;
   correct: number; // index van het correcte antwoord
+  /** Optioneel: afbeelding uit `public/` (bv. `/images/quiz.png`). */
+  afbeeldingSrc?: string;
+  /** Alleen voor admin: referentie-antwoord of toelichting (niet naar teams). */
+  antwoordJury?: string;
 };
+
+export type QuizVraagOpen = {
+  id: number;
+  type: 'open';
+  vraag: string;
+  /** Optioneel: regel direct boven het invoerveld. */
+  regelBovenInvoer?: string;
+  /** Optioneel: afbeelding uit `public/` (bv. `/images/quiz.png`). */
+  afbeeldingSrc?: string;
+  /** Alleen voor admin: referentie-antwoord (niet naar teams). */
+  antwoordJury?: string;
+};
+
+export type QuizVraag = QuizVraagMeerkeuze | QuizVraagOpen;
 
 export type MuziekFragment = {
   id: number;
@@ -11,6 +29,8 @@ export type MuziekFragment = {
   audioSrc: string;
   /** Startpunt in seconden in het audiobestand; bij een voorgesneden fragment meestal 0 */
   startTijd: number;
+  /** Optioneel: stoppunt in seconden in hetzelfde bestand (relatief tot startTijd voor de afspeelduur) */
+  eindTijd?: number;
   /** Alleen voor de admin — nooit naar client sturen */
   artiest?: string;
   titel?: string;
@@ -30,6 +50,29 @@ export type MuziekOpdracht = {
   type: 'muziek';
   naam: string;
   fragmenten: MuziekFragment[];
+};
+
+export type GeluidFragment = {
+  id: number;
+  /** Pad onder `public/` of absolute URL */
+  audioSrc: string;
+  startTijd: number;
+  eindTijd?: number;
+  /** Alleen admin — referentie-antwoord (niet naar teams). */
+  antwoordJury: string;
+};
+
+export type GeluidOpdracht = {
+  id: string;
+  type: 'geluid';
+  naam: string;
+  ondertitel?: string;
+  fragmenten: Array<GeluidFragment>;
+};
+
+/** Client: zonder antwoordJury op fragmenten. */
+export type GeluidOpdrachtClient = Omit<GeluidOpdracht, 'fragmenten'> & {
+  fragmenten: Array<Omit<GeluidFragment, 'antwoordJury'>>;
 };
 
 export type FotoOpdracht = {
@@ -74,21 +117,45 @@ export type GeplandeOpdracht = {
   naam: string;
 };
 
+/** Referentiepunt voor admin (afstand in km); wordt niet naar teams gestuurd. */
+export type KaartVraagConfig = {
+  id: number;
+  vraag: string;
+  lat: number;
+  lng: number;
+  /** Kort label in admin, bijv. stadnaam. */
+  referentie: string;
+};
+
+export type KaartOpdracht = {
+  id: string;
+  type: 'kaart';
+  naam: string;
+  ondertitel?: string;
+  vragen: Array<KaartVraagConfig>;
+};
+
+/** Client: alleen vraagteksten, geen referentiecoördinaten. */
+export type KaartOpdrachtClient = Omit<KaartOpdracht, 'vragen'> & {
+  vragen: Array<{ id: number; vraag: string }>;
+};
+
 export type Opdracht =
   | QuizOpdracht
   | MuziekOpdracht
+  | GeluidOpdracht
   | FotoOpdracht
   | TimingOpdracht
   | EmojiOpdracht
+  | KaartOpdracht
   | GeplandeOpdracht;
 
-export const teams: string[] = [
+export const teams: Array<string> = [
+  'Christel',
+  'Kim',
+  'Mariët',
+  'Ben',
   'Jolien',
-  'Erna',
-  'Jan',
-  'Rik',
-  'Tessa',
-  'Rudi',
 ];
 
 export const opdrachten: Opdracht[] = [
@@ -96,25 +163,64 @@ export const opdrachten: Opdracht[] = [
   {
     id: '1',
     type: 'quiz',
-    naam: 'Quiz: Algemene Kennis',
+    naam: 'Quiz: Familie Lugtenberg',
     vragen: [
       {
         id: 1,
-        vraag: 'Wat is de hoofdstad van Nederland?',
-        opties: ['Rotterdam', 'Den Haag', 'Amsterdam', 'Utrecht'],
-        correct: 2,
+        vraag: 'In welk jaar zijn opa en oma getrouwd?',
+        opties: ['1949', '1933', '1950', '1947'],
+        correct: 0,
+        antwoordJury: '1949',
       },
       {
         id: 2,
-        vraag: 'Hoeveel kleuren heeft een regenboog?',
-        opties: ['5', '6', '7', '8'],
-        correct: 2,
+        vraag: 'Wie is het 5e kleinkind van opa en oma Lugtenberg?',
+        opties: ['Christel', 'Hilde', 'Frank', 'Ben', 'Susan', 'Karin'],
+        correct: 3,
+        antwoordJury: 'Ben (5e kleinkind)',
       },
       {
         id: 3,
-        vraag: 'Welk dier is het snelste op land?',
-        opties: ['Leeuw', 'Cheetah', 'Paard', 'Struisvogel'],
+        vraag:
+          'Wie heeft de groepsapp van de familie Lugtenberg aangemaakt en in welk jaartal?',
+        opties: ['Erna in 2016', 'Jolien in 2017', 'Susan in 2017', 'Bennie in 1945'],
+        correct: 0,
+        antwoordJury: 'Erna in 2016',
+      },
+      {
+        id: 4,
+        vraag:
+          'Christel, Ben en Erna stapten alle drie in het huwelijksbootje. Hoeveel jaren zijn zij al getrouwd?',
+        opties: ['49 jaar', '50 jaar', '51 jaar', '52 jaar'],
+        correct: 2,
+        antwoordJury: '51 jaar',
+      },
+      {
+        id: 5,
+        vraag: 'Hoeveel m² grond heeft de Brandweg 17 inclusief weiland?',
+        opties: ['2850 m²', '3975 m²', '4520 m²', '5100 m²'],
         correct: 1,
+        antwoordJury: '3975 m²',
+      },
+      {
+        id: 6,
+        vraag: 'Van wanneer tot wanneer zijn dit jaar de pompdagen?',
+        opties: [
+          '19 t/m 23 augustus',
+          '18 t/m 22 augustus',
+          '12 t/m 16 augustus',
+          '13 t/m 17 augustus',
+        ],
+        correct: 0,
+        antwoordJury: '19 t/m 23 augustus',
+      },
+      {
+        id: 7,
+        vraag:
+          'Hectare, wat is dat? Ik praat alleen in bundes. Hoe vaak was Coen slecht op een familiedag?',
+        opties: ['1 keer', '2 keer', '4 keer', 'te vaak'],
+        correct: 3,
+        antwoordJury: 'Te vaak',
       },
     ],
   },
@@ -123,87 +229,80 @@ export const opdrachten: Opdracht[] = [
   {
     id: '2',
     type: 'quiz',
-    naam: 'Boerelijke breinbrekers',
-    ondertitel: 'Raadsels voor wie verder denkt dan de wei lang is',
+    naam: 'Pubquiz: rondje wereld',
+    ondertitel: 'Nieuws, sport en snufjes — typ je antwoord; de jury keurt na afloop goed.',
     vragen: [
       {
         id: 1,
-        vraag:
-          'Een boer heeft 17 schapen. Op 9 na gaan ze allemaal dood. Hoeveel blijven er over?',
-        opties: ['8', '9', '17', '0'],
-        correct: 1,
+        type: 'open',
+        vraag: 'Welk land hoort bij deze vlag?',
+        afbeeldingSrc: '/images/pubquiz-vlag-sri-lanka.svg',
+        antwoordJury: 'Sri Lanka',
       },
       {
         id: 2,
-        vraag: 'Wat kan door een weiland reizen zonder ooit te bewegen?',
-        opties: ['Wind', 'Schaduw', 'Een geluid', 'Een weg'],
-        correct: 2,
+        type: 'open',
+        vraag: 'Hoe heet de Nederlandse minister-president (mei 2026)?',
+        antwoordJury: 'Dick Schoof',
       },
       {
         id: 3,
+        type: 'open',
         vraag:
-          'Een haan legt een ei precies op de nok van het dak van de schuur. Naar welke kant rolt het ei?',
-        opties: ['Links', 'Rechts', 'Naar de zon', 'Geen enkele kant'],
-        correct: 3,
+          'Het WK voetbal voor mannen in 2026 wordt in hoeveel verschillende landen gespeeld? (alleen het getal)',
+        antwoordJury: '3 (Verenigde Staten, Canada, Mexico)',
       },
       {
         id: 4,
-        vraag: 'Hoe verder je kijkt, hoe minder je ziet. Wat is het?',
-        opties: ['Mist', 'Donker', 'De horizon', 'Afstand'],
-        correct: 3,
+        type: 'open',
+        vraag: 'In welke Zwitserse stad werd het Eurovisie Songfestival 2025 gehouden?',
+        antwoordJury: 'Bazel (Basel; St. Jakobshalle)',
       },
       {
         id: 5,
         vraag:
-          'Een boer heeft één lucifer. Hij komt in een donkere schuur met een olielamp, een houtkachel en een kaars. Wat steekt hij als eerste aan?',
-        opties: ['De lamp', 'De kachel', 'De kaars', 'De lucifer'],
+          'Welk EU-land trad op 1 januari 2026 toe tot het eurogebied (als eenentwintigste lid)?',
+        opties: ['Roemenië', 'Polen', 'Hongarije', 'Bulgarije'],
         correct: 3,
+        antwoordJury: 'Bulgarije',
       },
       {
         id: 6,
-        vraag:
-          'Wat wordt van jou, gebruikt door anderen, maar zie je zelf zelden?',
-        opties: ['Je stem', 'Je naam', 'Je gezicht', 'Je schaduw'],
-        correct: 1,
+        type: 'open',
+        vraag: 'Welk dier staat centraal in het logo van het WNF (Wereld Natuur Fonds)?',
+        antwoordJury: 'De reuzenpanda (panda)',
       },
       {
         id: 7,
-        vraag: 'Welke maand heeft 28 dagen?',
-        opties: ['Februari', 'Alleen schrikkeljaar', 'December', 'Alle maanden'],
-        correct: 3,
+        type: 'open',
+        vraag: 'Hoeveel horizontale banen (strepen) telt de vlag van de Verenigde Staten?',
+        antwoordJury: '13 (dertien strepen)',
       },
       {
         id: 8,
-        vraag:
-          'Een boer kijkt uit het raam en ziet 6 koeien in een weiland. Terwijl hij kijkt, lopen er 4 weg. Hoeveel koeien ziet hij nog?',
-        opties: ['2', '4', '6', '10'],
-        correct: 2,
+        type: 'open',
+        vraag: 'Welke drie kleuren heeft de vlag van Estland?',
+        antwoordJury: 'Blauw, zwart, wit (boven naar beneden)',
       },
       {
         id: 9,
-        vraag: 'Hoe kan iemand acht dagen niet slapen?',
-        opties: ['Door koffie', 'Door medicijnen', 'Dat kan niet', 'Hij slaapt ’s nachts'],
-        correct: 3,
+        type: 'open',
+        vraag: 'Hoe noem je een tijdvak van duizend jaar?',
+        antwoordJury: 'Millennium',
       },
       {
         id: 10,
+        type: 'open',
         vraag:
-          'Wat heeft wortels die niemand ziet, groeit hoger dan bomen, stijgt nooit op, maar lijkt toch te groeien?',
-        opties: ['Mais', 'Een berg', 'Een wolk', 'Een schuur'],
-        correct: 1,
+          'Welke rivier is doorgaans de langste van Europa die volledig op het continent stroomt?',
+        antwoordJury: 'De Wolga (Volga)',
       },
       {
         id: 11,
-        vraag: 'Wat wordt natter hoe meer het droogt?',
-        opties: ['Modder', 'Een handdoek', 'Gras', 'Een spons'],
-        correct: 1,
-      },
-      {
-        id: 12,
+        type: 'open',
         vraag:
-          'Je gooit mij weg als je me nodig hebt, en haalt me terug als je me niet meer nodig hebt. Wat ben ik?',
-        opties: ['Een visnet', 'Een anker', 'Een emmer', 'Een laars'],
-        correct: 1,
+          'Welk land werd in 2024 Europees kampioen voetbal bij de mannen?',
+        antwoordJury: 'Spanje (finale tegen Engeland)',
       },
     ],
   },
@@ -236,29 +335,33 @@ export const opdrachten: Opdracht[] = [
         id: 2,
         audioSrc: '/audio/o4-f2.mp3',
         startTijd: 0,
-        artiest: 'Marco Borsato',
-        titel: 'Dromen zijn bedrog',
+        eindTijd: 3,
+        artiest: 'Vader Abraham',
+        titel: "'t Smurfenlied",
       },
       {
         id: 3,
         audioSrc: '/audio/o4-f3.mp3',
         startTijd: 0,
-        artiest: 'Queen',
-        titel: 'Bohemian Rhapsody',
+        eindTijd: 15,
+        artiest: 'Gebroeders Ko',
+        titel: "Toeter op m'n waterscooter",
       },
       {
         id: 4,
-        audioSrc: '/audio/o4-f4.mp3',
+        audioSrc: '/audio/o4-f4.mp4',
         startTijd: 0,
-        artiest: 'a-ha',
-        titel: 'Take On Me',
+        eindTijd: 13,
+        artiest: 'Bankzitters',
+        titel: 'Cupido',
       },
       {
         id: 5,
-        audioSrc: '/audio/o4-f5.mp3',
+        audioSrc: '/audio/o4-f5.mp4',
         startTijd: 0,
-        artiest: 'Toto',
-        titel: 'Africa',
+        eindTijd: 13,
+        artiest: 'Tino Martin',
+        titel: 'Zij weet het',
       },
     ],
   },
@@ -279,22 +382,111 @@ export const opdrachten: Opdracht[] = [
     naam: 'Emoji-raadsel',
     ondertitel: 'Type het antwoord — geen hints!',
     vragen: [
-      { id: 1,  emoji: '🦁 👑 🌍',       vraagLabel: 'Welke film?',        antwoord: 'The Lion King' },
+      { id: 1,  emoji: '🦁 👑',       vraagLabel: 'Welke film?',        antwoord: 'The Lion King' },
       { id: 2,  emoji: '❄️ 👸 ⛄',        vraagLabel: 'Welke film?',        antwoord: 'Frozen' },
-      { id: 3,  emoji: '🕷️ 🕸️ 🗽',      vraagLabel: 'Welke superheld?',   antwoord: 'Spider-Man' },
+      { id: 3,  emoji: '🍟 🍔 🍕',        vraagLabel: 'Welke land?',        antwoord: 'Hongarije' },
       { id: 4,  emoji: '🐟 🌊 🔍',        vraagLabel: 'Welke film?',        antwoord: 'Finding Nemo' },
-      { id: 5,  emoji: '🧙‍♂️ ⚡ 📚',     vraagLabel: 'Welke boekenreeks?', antwoord: 'Harry Potter' },
+      { id: 5,  emoji: '👊 🤫',        vraagLabel: 'Welke film?',        antwoord: 'Fight Club' },
       { id: 6,  emoji: '🍕 🐢 🥋',        vraagLabel: 'Welke serie?',       antwoord: 'Ninja Turtles' },
-      { id: 7,  emoji: '🌺 🌊 🏝️',       vraagLabel: 'Welke film?',        antwoord: 'Moana' },
-      { id: 8,  emoji: '🏎️ ⚡ 🏁',       vraagLabel: 'Welke film?',        antwoord: 'Cars' },
-      { id: 9,  emoji: '👶 🦈 🎵',        vraagLabel: 'Welk liedje?',       antwoord: 'Baby Shark' },
-      { id: 10, emoji: '🤖 🗑️ ❤️',       vraagLabel: 'Welke film?',        antwoord: 'WALL-E' },
+      { id: 7,  emoji: '👹 🚰',        vraagLabel: 'Welke stad is dit?',   antwoord: 'Helsinki' },
+      { id: 8,  emoji: '🦄 🌧️ 🤖',       vraagLabel: 'Welke film?',        antwoord: 'Blade Runner' },
+      { id: 9,  emoji: '🎩 👯 ⚡',        vraagLabel: 'Welke film?',        antwoord: 'The Prestige' },
+      { id: 10, emoji: '🚫🔑',         vraagLabel: 'Welk merk is dit?',    antwoord: 'Nokia' },
     ],
   },
 
-  // ── Opdracht 7 t/m 12 (inhoud volgt later) ─────────────────────────────────
-  { id: '7', type: 'gepland', naam: 'Opdracht 7' },
-  { id: '8', type: 'gepland', naam: 'Opdracht 8' },
+  // ── Opdracht 7 ─────────────────────────────────────────────────────────────
+  {
+    id: '7',
+    type: 'kaart',
+    naam: 'Nederland op de kaart',
+    ondertitel: 'Vijf bijzondere plekken — zet per vraag een stip op de kaart (zonder labels). De jury kiest wie het dichtst zit.',
+    vragen: [
+      {
+        id: 1,
+        vraag: 'Waar ligt Poepershoek?',
+        referentie: 'Poepershoek',
+        lat: 52.67,
+        lng: 6.01972,
+      },
+      {
+        id: 2,
+        vraag: 'Waar ligt Muggenbeet?',
+        referentie: 'Muggenbeet',
+        lat: 52.74098,
+        lng: 5.98993,
+      },
+      {
+        id: 3,
+        vraag: 'Waar ligt Nooitgedacht?',
+        referentie: 'Nooitgedacht',
+        lat: 52.97389,
+        lng: 6.66361,
+      },
+      {
+        id: 4,
+        vraag: 'Waar ligt Sexbierum?',
+        referentie: 'Sexbierum',
+        lat: 53.21806,
+        lng: 5.48333,
+      },
+      {
+        id: 5,
+        vraag: 'Waar ligt Venray?',
+        referentie: 'Venray (centrum)',
+        lat: 51.52563,
+        lng: 5.9737,
+      },
+    ],
+  },
+
+  // ── Opdracht 8 ─────────────────────────────────────────────────────────────
+  {
+    id: '8',
+    type: 'geluid',
+    naam: 'Raad het geluid',
+    ondertitel: 'Korte fragmenten — typ wat je denkt te horen. De jury keurt goed/fout.',
+    fragmenten: [
+      {
+        id: 1,
+        audioSrc: '/audio/o8-f1.mp3',
+        startTijd: 60,
+        eindTijd: 65,
+        antwoordJury:
+          'Klikken met een pen',
+      },
+      {
+        id: 2,
+        audioSrc: '/audio/o8-f1.mp3',
+        startTijd: 180,
+        eindTijd: 185,
+        antwoordJury: 'Papier knippen',
+      },
+      {
+        id: 3,
+        audioSrc: '/audio/o8-f1.mp3',
+        startTijd: 230,
+        eindTijd: 235,
+        antwoordJury: 'Slapende kat (snurken / kat die slaapt)',
+      },
+      {
+        id: 4,
+        audioSrc: '/audio/o8-knokkels.mp3',
+        startTijd: 0,
+        eindTijd: 12,
+        antwoordJury: 'Knokkels kraken / knakken met de knokkels',
+      },
+      {
+        id: 5,
+        audioSrc: '/audio/o8-ov.mp3',
+        startTijd: 0,
+        eindTijd: 15,
+        antwoordJury: 'OV-chipkaart inchecken / inchecken in bus of trein (OV)',
+      },
+    ],
+  },
+
+  // ── Opdracht 9 t/m 12 (inhoud volgt later) ─────────────────────────────────
   { id: '9', type: 'gepland', naam: 'Opdracht 9' },
   { id: '10', type: 'gepland', naam: 'Opdracht 10' },
   { id: '11', type: 'gepland', naam: 'Opdracht 11' },

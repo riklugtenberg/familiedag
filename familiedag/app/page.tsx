@@ -11,9 +11,11 @@ import { saveSessionTeam } from '@/lib/sessionClient';
 const typeEmoji: Record<string, string> = {
   quiz: '📝',
   muziek: '🎵',
+  geluid: '🔊',
   foto: '📷',
   timing: '⏱',
   emoji: '🔤',
+  kaart: '🗺️',
   gepland: '📋',
 };
 
@@ -116,7 +118,9 @@ export default function HomePage() {
                 <span className="text-3xl">{typeEmoji[opdracht.type]}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-lg font-bold text-gray-900">{opdracht.naam}</p>
-                  {opdracht.type === 'quiz' && opdracht.ondertitel ? (
+                  {(opdracht.type === 'quiz' || opdracht.type === 'kaart' || opdracht.type === 'geluid') &&
+                  'ondertitel' in opdracht &&
+                  opdracht.ondertitel ? (
                       <p className="text-xs text-gray-500 mt-0.5 leading-snug">
                         {opdracht.ondertitel}
                       </p>

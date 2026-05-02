@@ -10,18 +10,22 @@ const QR_IDS = Array.from({ length: 12 }, (_, i) => String(i + 1));
 const typeEmoji: Record<string, string> = {
   quiz: '📝',
   muziek: '🎵',
+  geluid: '🔊',
   foto: '📷',
   timing: '⏱',
   emoji: '🔤',
+  kaart: '🗺️',
   gepland: '📋',
 };
 
 const typeKleur: Record<string, string> = {
   quiz: 'bg-blue-50 border-blue-200',
   muziek: 'bg-purple-50 border-purple-200',
+  geluid: 'bg-violet-50 border-violet-200',
   foto: 'bg-green-50 border-green-200',
   timing: 'bg-amber-50 border-amber-200',
   emoji: 'bg-pink-50 border-pink-200',
+  kaart: 'bg-cyan-50 border-cyan-200',
   gepland: 'bg-gray-50 border-gray-200',
 };
 

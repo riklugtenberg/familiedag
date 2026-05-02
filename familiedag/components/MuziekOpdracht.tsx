@@ -2,9 +2,19 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import type { MuziekOpdracht as MuziekOpdrachtType } from '@/config/opdrachten';
+import type {
+  MuziekFragment,
+  MuziekOpdracht as MuziekOpdrachtType,
+} from '@/config/opdrachten';
 
 const FRAGMENT_DUUR = 10;
+
+function fragmentDuurSec(fragment: MuziekFragment): number {
+  const startTijd = Math.max(0, fragment.startTijd);
+  return fragment.eindTijd !== undefined
+    ? Math.max(0, fragment.eindTijd - startTijd)
+    : FRAGMENT_DUUR;
+}
 
 type Props = {
   opdracht: MuziekOpdrachtType;
@@ -58,6 +68,10 @@ export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
     if (!audio) return;
 
     const startTijd = Math.max(0, fragment.startTijd);
+    const duurSec =
+      fragment.eindTijd !== undefined
+        ? Math.max(0, fragment.eindTijd - startTijd)
+        : FRAGMENT_DUUR;
     try {
       audio.pause();
       audio.currentTime = startTijd;
@@ -75,7 +89,7 @@ export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
       }
       setSpeeltIndex(null);
       timerRef.current = null;
-    }, FRAGMENT_DUUR * 1000);
+    }, duurSec * 1000);
   }
 
   function updateAntwoord(index: number, veld: 'artiest' | 'titel', waarde: string) {
@@ -151,6 +165,9 @@ export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
         <p className="text-base text-gray-600 mt-2">
           Herken je de nummers? Vul voor elk fragment de artiest en de titel in.
         </p>
+        <p className="text-sm text-gray-500 mt-2">
+          Je hoort steeds maar een kort stukje van het nummer — niet het hele lied.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -173,7 +190,7 @@ export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
                 <p className="text-sm text-gray-500">
                   {speeltIndex === i
                     ? 'Speelt af…'
-                    : 'Druk op ▶ om het fragment te horen (ongeveer 10 seconden).'}
+                    : `Druk op ▶ om het fragment te horen (${fragmentDuurSec(fragment)} s — alleen een stukje van het nummer).`}
                 </p>
               </div>
             </div>
