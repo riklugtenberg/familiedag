@@ -903,14 +903,19 @@ export default function AdminPage() {
                     ) : (
                       <div className="flex flex-col gap-3">
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Voorbeeld</p>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={opdracht.voorbeeldFotoUrl}
-                            alt="Voorbeeld"
-                            className="w-full max-w-xs rounded-lg object-cover bg-gray-100"
-                            style={{ aspectRatio: '4/3' }}
-                          />
+                          <p className="text-xs text-gray-500 mb-1">Voorbeelden</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-2xl">
+                            {opdracht.voorbeeldFotoUrls.map((url, vi) => (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                key={url}
+                                src={url}
+                                alt={`Voorbeeld ${vi + 1}`}
+                                className="w-full rounded-lg object-cover bg-gray-100"
+                                style={{ aspectRatio: '4/3' }}
+                              />
+                            ))}
+                          </div>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-2">

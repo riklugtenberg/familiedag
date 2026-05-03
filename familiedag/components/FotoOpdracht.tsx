@@ -36,7 +36,9 @@ export default function FotoOpdracht({ opdracht, teamNaam }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [bezig, setBezig] = useState(false);
   const [fout, setFout] = useState('');
-  const [voorbeeldFout, setVoorbeeldFout] = useState(false);
+  const [voorbeeldFout, setVoorbeeldFout] = useState<Array<boolean>>(() =>
+    opdracht.voorbeeldFotoUrls.map(() => false),
+  );
 
   useEffect(() => {
     return () => {
@@ -135,29 +137,43 @@ export default function FotoOpdracht({ opdracht, teamNaam }: Props) {
         <h1 className="text-2xl font-bold mt-1">{opdracht.naam}</h1>
       </div>
 
-      <div className="mb-5">
-        <p className="text-base font-semibold mb-3 text-gray-700">Voorbeeldfoto:</p>
-        {!voorbeeldFout ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={opdracht.voorbeeldFotoUrl}
-            alt="Voorbeeld van een nep foto met gedwongen perspectief"
-            onError={() => setVoorbeeldFout(true)}
-            className="w-full rounded-2xl object-cover bg-gray-100"
-            style={{ aspectRatio: '4/3' }}
-          />
-        ) : (
-          <div
-            className="w-full rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 text-base"
-            style={{ aspectRatio: '4/3' }}
-          >
-            Voorbeeldfoto ontbreekt
-          </div>
-        )}
+      <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 mb-5">
+        <p className="text-lg text-blue-800 leading-snug">{opdracht.instructie}</p>
       </div>
 
-      <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 mb-6">
-        <p className="text-lg text-blue-800 leading-snug">{opdracht.instructie}</p>
+      <div className="mb-6">
+        <p className="text-base font-semibold mb-3 text-gray-700">
+          {opdracht.voorbeeldFotoUrls.length === 1 ? 'Voorbeeldfoto:' : 'Voorbeeldfoto’s:'}
+        </p>
+        <div className="flex flex-col gap-3">
+          {opdracht.voorbeeldFotoUrls.map((url, index) =>
+            !voorbeeldFout[index] ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={url}
+                src={url}
+                alt={`Voorbeeld ${index + 1}: nep foto met geforceerd perspectief`}
+                onError={() =>
+                  setVoorbeeldFout((prev) => {
+                    const next = [...prev];
+                    next[index] = true;
+                    return next;
+                  })
+                }
+                className="w-full rounded-2xl object-cover bg-gray-100"
+                style={{ aspectRatio: '4/3' }}
+              />
+            ) : (
+              <div
+                key={url}
+                className="w-full rounded-2xl bg-gray-100 flex items-center justify-center text-gray-400 text-base"
+                style={{ aspectRatio: '4/3' }}
+              >
+                Voorbeeldfoto {index + 1} ontbreekt
+              </div>
+            ),
+          )}
+        </div>
       </div>
 
       <input
@@ -212,7 +228,10 @@ export default function FotoOpdracht({ opdracht, teamNaam }: Props) {
             className="flex items-center justify-center gap-3 w-full bg-blue-600 text-white text-xl font-bold rounded-xl cursor-pointer active:bg-blue-700"
             style={{ minHeight: '72px', fontSize: '20px' }}
           >
-            📷 {items.length === 0 ? 'Kies een foto' : 'Nog een foto toevoegen'}
+            📷{' '}
+            {items.length === 0
+              ? 'Maak of kies een foto'
+              : 'Nog een foto toevoegen'}
           </label>
         ) : (
           <p className="text-center text-sm text-gray-500">

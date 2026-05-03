@@ -79,7 +79,8 @@ export type FotoOpdracht = {
   id: string;
   type: 'foto';
   naam: string;
-  voorbeeldFotoUrl: string;
+  /** Paden onder `public/` (bv. `/images/voorbeeld.png`). */
+  voorbeeldFotoUrls: Array<string>;
   instructie: string;
   /** Maximaal aantal uploads (standaard 3) */
   maxFotos?: number;
@@ -228,6 +229,70 @@ export const opdrachten: Opdracht[] = [
   // ── Opdracht 2 ──────────────────────────────────────────────────────────────
   {
     id: '2',
+    type: 'muziek',
+    naam: 'Muziek Herkennen',
+    fragmenten: [
+      {
+        id: 1,
+        audioSrc: '/audio/o2-f1.mp3',
+        startTijd: 0,
+        eindTijd: 5,
+        artiest: 'Suzan en Freek',
+        titel: 'Als het avond is',
+      },
+      {
+        id: 2,
+        audioSrc: '/audio/o4-f2.mp3',
+        startTijd: 0,
+        eindTijd: 3,
+        artiest: 'Vader Abraham',
+        titel: "'t Smurfenlied",
+      },
+      {
+        id: 3,
+        audioSrc: '/audio/o4-f3.mp3',
+        startTijd: 0,
+        eindTijd: 15,
+        artiest: 'Gebroeders Ko',
+        titel: "Toeter op m'n waterscooter",
+      },
+      {
+        id: 4,
+        audioSrc: '/audio/o4-f4.mp4',
+        startTijd: 0,
+        eindTijd: 13,
+        artiest: 'Bankzitters',
+        titel: 'Cupido',
+      },
+      {
+        id: 5,
+        audioSrc: '/audio/o4-f5.mp4',
+        startTijd: 0,
+        eindTijd: 13,
+        artiest: 'Tino Martin',
+        titel: 'Zij weet het',
+      },
+    ],
+  },
+
+  // ── Opdracht 3 ──────────────────────────────────────────────────────────────
+  {
+    id: '3',
+    type: 'foto',
+    naam: 'Nep-foto challenge',
+    voorbeeldFotoUrls: [
+      '/images/nep-foto-voorbeeld-opdracht3.png',
+      '/images/o3-voorbeeld-geforceerd-perspectief-blaas.png',
+      '/images/o3-voorbeeld-geforceerd-perspectief-trap.png',
+    ],
+    maxFotos: 3,
+    instructie:
+      'Maak een foto van iemand of meerdere mensen binnen je team, met een nep foto. Hieronder vind je voorbeelden. Kies daarna welke foto’s je wilt insturen — je kunt tot 3 foto’s uploaden. Het team met de meest bijzondere foto krijgt een puntje.',
+  },
+
+  // ── Opdracht 4 ──────────────────────────────────────────────────────────────
+  {
+    id: '4',
     type: 'quiz',
     naam: 'Pubquiz: rondje wereld',
     ondertitel: 'Nieuws, sport en snufjes — typ je antwoord; de jury keurt na afloop goed.',
@@ -255,7 +320,7 @@ export const opdrachten: Opdracht[] = [
       {
         id: 4,
         type: 'open',
-        vraag: 'In welke Zwitserse stad werd het Eurovisie Songfestival 2025 gehouden?',
+        vraag: 'In welke stad werd het Eurovisie Songfestival 2025 gehouden?',
         antwoordJury: 'Bazel (Basel; St. Jakobshalle)',
       },
       {
@@ -307,65 +372,6 @@ export const opdrachten: Opdracht[] = [
     ],
   },
 
-  // ── Opdracht 3 ──────────────────────────────────────────────────────────────
-  {
-    id: '3',
-    type: 'foto',
-    naam: 'Nep-foto challenge',
-    voorbeeldFotoUrl: '/images/nep-foto-voorbeeld-opdracht3.png',
-    maxFotos: 3,
-    instructie:
-      'Maak een foto van iemand of meerdere mensen binnen je team, met een nep foto. Hieronder vind je een voorbeeld. Je kunt tot 3 foto’s uploaden. Het team met de meest bijzondere foto krijgt een puntje.',
-  },
-
-  // ── Opdracht 4 ──────────────────────────────────────────────────────────────
-  {
-    id: '4',
-    type: 'muziek',
-    naam: 'Muziek Herkennen',
-    fragmenten: [
-      {
-        id: 1,
-        audioSrc: '/audio/audio-1.mp3',
-        startTijd: 30,
-        artiest: 'The Beatles',
-        titel: 'Let It Be',
-      },
-      {
-        id: 2,
-        audioSrc: '/audio/o4-f2.mp3',
-        startTijd: 0,
-        eindTijd: 3,
-        artiest: 'Vader Abraham',
-        titel: "'t Smurfenlied",
-      },
-      {
-        id: 3,
-        audioSrc: '/audio/o4-f3.mp3',
-        startTijd: 0,
-        eindTijd: 15,
-        artiest: 'Gebroeders Ko',
-        titel: "Toeter op m'n waterscooter",
-      },
-      {
-        id: 4,
-        audioSrc: '/audio/o4-f4.mp4',
-        startTijd: 0,
-        eindTijd: 13,
-        artiest: 'Bankzitters',
-        titel: 'Cupido',
-      },
-      {
-        id: 5,
-        audioSrc: '/audio/o4-f5.mp4',
-        startTijd: 0,
-        eindTijd: 13,
-        artiest: 'Tino Martin',
-        titel: 'Zij weet het',
-      },
-    ],
-  },
-
   // ── Opdracht 5 ──────────────────────────────────────────────────────────────
   {
     id: '5',
@@ -382,16 +388,16 @@ export const opdrachten: Opdracht[] = [
     naam: 'Emoji-raadsel',
     ondertitel: 'Type het antwoord — geen hints!',
     vragen: [
-      { id: 1,  emoji: '🦁 👑',       vraagLabel: 'Welke film?',        antwoord: 'The Lion King' },
-      { id: 2,  emoji: '❄️ 👸 ⛄',        vraagLabel: 'Welke film?',        antwoord: 'Frozen' },
-      { id: 3,  emoji: '🍟 🍔 🍕',        vraagLabel: 'Welke land?',        antwoord: 'Hongarije' },
-      { id: 4,  emoji: '🐟 🌊 🔍',        vraagLabel: 'Welke film?',        antwoord: 'Finding Nemo' },
-      { id: 5,  emoji: '👊 🤫',        vraagLabel: 'Welke film?',        antwoord: 'Fight Club' },
-      { id: 6,  emoji: '🍕 🐢 🥋',        vraagLabel: 'Welke serie?',       antwoord: 'Ninja Turtles' },
-      { id: 7,  emoji: '👹 🚰',        vraagLabel: 'Welke stad is dit?',   antwoord: 'Helsinki' },
-      { id: 8,  emoji: '🦄 🌧️ 🤖',       vraagLabel: 'Welke film?',        antwoord: 'Blade Runner' },
-      { id: 9,  emoji: '🎩 👯 ⚡',        vraagLabel: 'Welke film?',        antwoord: 'The Prestige' },
-      { id: 10, emoji: '🚫🔑',         vraagLabel: 'Welk merk is dit?',    antwoord: 'Nokia' },
+      { id: 1, emoji: '🦁 👑', vraagLabel: 'Welke film?', antwoord: 'The Lion King' },
+      { id: 2, emoji: '❄️ 👸 ⛄', vraagLabel: 'Welke film?', antwoord: 'Frozen' },
+      { id: 3, emoji: '🍟 🍔 🍕 🤤', vraagLabel: 'Welke land?', antwoord: 'Hongarije' },
+      { id: 4, emoji: '🐟 🌊 🔍', vraagLabel: 'Welke film?', antwoord: 'Finding Nemo' },
+      { id: 5, emoji: '👊 🤫', vraagLabel: 'Welke film?', antwoord: 'Fight Club' },
+      { id: 6, emoji: '👑 🐉', vraagLabel: 'Welke serie?', antwoord: 'Game of Thrones' },
+      { id: 7, emoji: '👹 🚰', vraagLabel: 'Welke stad is dit?', antwoord: 'Helsinki' },
+      { id: 8, emoji: 'B 🦷', vraagLabel: 'Welk technologie is dit?', antwoord: 'Bluetooth' },
+      { id: 9, emoji: '🫵 📺', vraagLabel: 'Welk platform is dit?', antwoord: 'YouTube' },
+      { id: 10, emoji: '🚫🔑', vraagLabel: 'Welk merk is dit?', antwoord: 'Nokia' },
     ],
   },
 
@@ -411,10 +417,10 @@ export const opdrachten: Opdracht[] = [
       },
       {
         id: 2,
-        vraag: 'Waar ligt Muggenbeet?',
-        referentie: 'Muggenbeet',
-        lat: 52.74098,
-        lng: 5.98993,
+        vraag: 'Waar ligt de P.C. Hooftstraat?',
+        referentie: 'P.C. Hooftstraat (Amsterdam)',
+        lat: 52.3597,
+        lng: 4.8797,
       },
       {
         id: 3,
