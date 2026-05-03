@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Link from 'next/link';
 import type { TimingOpdracht as TimingOpdrachtType } from '@/config/opdrachten';
 
 type Props = {
@@ -215,16 +214,6 @@ export default function TimingOpdracht({ opdracht, teamNaam, initialPogingen = [
       )}
 
       {fout && <p className="text-red-600 text-base mt-2">{fout}</p>}
-
-      {submitted && (
-        <Link
-          href="/"
-          className="mt-4 w-full bg-blue-600 text-white text-xl font-bold rounded-xl py-4 text-center active:bg-blue-700"
-          style={{ minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          ← Terug naar beginscherm
-        </Link>
-      )}
     </div>
   );
 }

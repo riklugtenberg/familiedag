@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import type { FotoOpdracht as FotoOpdrachtType } from '@/config/opdrachten';
 
 type Props = {
@@ -110,18 +109,6 @@ export default function FotoOpdracht({ opdracht, teamNaam }: Props) {
         <p className="text-lg text-gray-500 text-center mt-3">
           Jullie foto’s zijn ontvangen.
         </p>
-        <Link
-          href="/"
-          className="mt-10 w-full max-w-xs bg-blue-600 text-white text-xl font-bold rounded-xl py-4 text-center active:bg-blue-700"
-          style={{
-            minHeight: '60px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          ← Terug naar beginscherm
-        </Link>
       </div>
     );
   }
@@ -182,7 +169,14 @@ export default function FotoOpdracht({ opdracht, teamNaam }: Props) {
         capture="environment"
         onChange={handleFotoSelectie}
         className="hidden"
-        id="foto-input-opdracht"
+        id="foto-input-opdracht-camera"
+      />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleFotoSelectie}
+        className="hidden"
+        id="foto-input-opdracht-upload"
       />
 
       <p className="text-sm font-semibold text-gray-600 mb-2">
@@ -223,16 +217,22 @@ export default function FotoOpdracht({ opdracht, teamNaam }: Props) {
 
       <div className="flex flex-col gap-3 mt-auto">
         {kanNogToevoegen ? (
-          <label
-            htmlFor="foto-input-opdracht"
-            className="flex items-center justify-center gap-3 w-full bg-blue-600 text-white text-xl font-bold rounded-xl cursor-pointer active:bg-blue-700"
-            style={{ minHeight: '72px', fontSize: '20px' }}
-          >
-            📷{' '}
-            {items.length === 0
-              ? 'Maak of kies een foto'
-              : 'Nog een foto toevoegen'}
-          </label>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <label
+              htmlFor="foto-input-opdracht-camera"
+              className="flex flex-1 items-center justify-center gap-2 w-full bg-blue-600 text-white text-lg font-bold rounded-xl cursor-pointer active:bg-blue-700 text-center px-2"
+              style={{ minHeight: '64px' }}
+            >
+              📷 Foto maken
+            </label>
+            <label
+              htmlFor="foto-input-opdracht-upload"
+              className="flex flex-1 items-center justify-center gap-2 w-full bg-slate-600 text-white text-lg font-bold rounded-xl cursor-pointer active:bg-slate-700 text-center px-2"
+              style={{ minHeight: '64px' }}
+            >
+              🖼️ Foto uploaden
+            </label>
+          </div>
         ) : (
           <p className="text-center text-sm text-gray-500">
             Maximum van {maxFotos} foto’s bereikt. Verwijder een foto om een andere te kiezen.

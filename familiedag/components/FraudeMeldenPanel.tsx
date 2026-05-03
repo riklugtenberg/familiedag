@@ -50,7 +50,7 @@ export default function FraudeMeldenPanel({ melderTeam }: Props) {
     setBezig(true);
     setFout('');
     try {
-      const urls: string[] = [];
+      const urls: Array<string> = [];
       for (const item of fotos) {
         const formData = new FormData();
         formData.append('file', item.file);
@@ -182,17 +182,33 @@ export default function FraudeMeldenPanel({ melderTeam }: Props) {
                 type="file"
                 accept="image/*"
                 capture="environment"
-                id="fraude-foto-input"
+                id="fraude-foto-input-camera"
                 className="hidden"
                 onChange={handleFotoSelectie}
               />
-              <label
-                htmlFor="fraude-foto-input"
-                className="flex items-center justify-center gap-2 w-full bg-white border-2 border-red-300 text-red-700 font-bold rounded-xl cursor-pointer active:bg-red-50 mb-4"
-                style={{ minHeight: '52px' }}
-              >
-                📷 {fotos.length === 0 ? 'Foto toevoegen' : 'Nog een foto'}
-              </label>
+              <input
+                type="file"
+                accept="image/*"
+                id="fraude-foto-input-upload"
+                className="hidden"
+                onChange={handleFotoSelectie}
+              />
+              <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                <label
+                  htmlFor="fraude-foto-input-camera"
+                  className="flex flex-1 items-center justify-center gap-2 w-full bg-white border-2 border-red-400 text-red-800 font-bold rounded-xl cursor-pointer active:bg-red-50 text-center px-2"
+                  style={{ minHeight: '52px' }}
+                >
+                  📷 Foto maken
+                </label>
+                <label
+                  htmlFor="fraude-foto-input-upload"
+                  className="flex flex-1 items-center justify-center gap-2 w-full bg-white border-2 border-red-300 text-red-700 font-bold rounded-xl cursor-pointer active:bg-red-50 text-center px-2"
+                  style={{ minHeight: '52px' }}
+                >
+                  🖼️ Foto uploaden
+                </label>
+              </div>
 
               {fout && <p className="text-red-600 text-sm mb-3">{fout}</p>}
 

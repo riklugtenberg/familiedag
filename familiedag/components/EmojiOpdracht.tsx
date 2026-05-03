@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import type { EmojiOpdracht as EmojiOpdrachtType } from '@/config/opdrachten';
 
 type Props = {
@@ -62,13 +61,6 @@ export default function EmojiOpdracht({ opdracht, teamNaam }: Props) {
         <p className="text-lg text-gray-500 text-center mt-3">
           De jury beoordeelt jullie antwoorden.
         </p>
-        <Link
-          href="/"
-          className="mt-10 w-full max-w-xs bg-blue-600 text-white text-xl font-bold rounded-xl py-4 text-center active:bg-blue-700"
-          style={{ minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          ← Terug naar beginscherm
-        </Link>
       </div>
     );
   }

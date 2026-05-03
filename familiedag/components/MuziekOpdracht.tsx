@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
 import type {
   MuziekFragment,
   MuziekOpdracht as MuziekOpdrachtType,
@@ -125,13 +124,6 @@ export default function MuziekOpdracht({ opdracht, teamNaam }: Props) {
         <p className="text-lg text-gray-500 text-center mt-3">
           Jullie antwoorden zijn ontvangen.
         </p>
-        <Link
-          href="/"
-          className="mt-10 w-full max-w-xs bg-blue-600 text-white text-xl font-bold rounded-xl py-4 text-center active:bg-blue-700"
-          style={{ minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          ← Terug naar beginscherm
-        </Link>
       </div>
     );
   }

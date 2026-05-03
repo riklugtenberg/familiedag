@@ -2,11 +2,9 @@
 
 import { useState, useEffect, startTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { opdrachten } from '@/config/opdrachten';
-import TeamKiezer from '@/components/TeamKiezer';
-import FraudeMeldenPanel from '@/components/FraudeMeldenPanel';
 import { getTeamFromCookie } from '@/lib/teamCookie';
-import { saveSessionTeam } from '@/lib/sessionClient';
 
 const typeEmoji: Record<string, string> = {
   quiz: '📝',
@@ -20,8 +18,8 @@ const typeEmoji: Record<string, string> = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
   const [team, setTeam] = useState<string | null>(null);
-  const [wijzigenOpen, setWijzigenOpen] = useState(false);
   const [geladen, setGeladen] = useState(false);
   /** null = laden van Redis */
   const [ingeleverd, setIngeleverd] = useState<Record<string, boolean> | null>(null);
@@ -35,7 +33,14 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!team || wijzigenOpen) {
+    if (!geladen) return;
+    if (!team) {
+      router.replace(`/team?next=${encodeURIComponent('/')}`);
+    }
+  }, [geladen, team, router]);
+
+  useEffect(() => {
+    if (!team) {
       setIngeleverd(null);
       return;
     }
@@ -64,27 +69,11 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [team, wijzigenOpen]);
-
-  async function handleTeamSelected(nieuwTeam: string) {
-    const ok = await saveSessionTeam(nieuwTeam);
-    if (!ok) return;
-    setTeam(nieuwTeam);
-    setWijzigenOpen(false);
-  }
+  }, [team]);
 
   // Voorkom flash
   if (!geladen) return null;
-
-  if (!team || wijzigenOpen) {
-    return (
-      <TeamKiezer
-        huidigTeam={team ?? undefined}
-        onTeamSelected={handleTeamSelected}
-        onAnnuleren={wijzigenOpen ? () => setWijzigenOpen(false) : undefined}
-      />
-    );
-  }
+  if (!team) return null;
 
   return (
     <main className="min-h-screen flex flex-col items-center p-6 bg-linear-to-b from-blue-50 to-white">
@@ -92,14 +81,14 @@ export default function HomePage() {
         {/* Top bar */}
         <div className="flex items-center justify-between pt-4 mb-8">
           <div className="text-2xl font-bold text-gray-900">🎉 Familiedag Lugtenbergjes</div>
-          <button
-            onClick={() => setWijzigenOpen(true)}
+          <Link
+            href={`/team?next=${encodeURIComponent('/')}`}
             className="flex items-center gap-2 bg-white border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold text-gray-700 active:bg-gray-50"
             style={{ minHeight: '44px' }}
           >
             <span>{team}</span>
             <span className="text-gray-400 text-xs">✎</span>
-          </button>
+          </Link>
         </div>
 
         {/* Opdrachten lijst */}
@@ -161,9 +150,13 @@ export default function HomePage() {
           })}
         </div>
 
-        <FraudeMeldenPanel melderTeam={team} />
-
-        <div className="mt-8 flex justify-center gap-6">
+        <div className="mt-8 flex justify-center gap-6 flex-wrap">
+          <Link
+            href="/melding"
+            className="text-sm font-semibold text-red-700 underline underline-offset-2"
+          >
+            🚨 Fraude melden
+          </Link>
           <Link href="/qr" className="text-sm text-gray-400 underline">
             QR-codes
           </Link>

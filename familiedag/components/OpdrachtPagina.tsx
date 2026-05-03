@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, startTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Opdracht } from '@/config/opdrachten';
-import TeamKiezer from './TeamKiezer';
 import QuizOpdracht from './QuizOpdracht';
 import MuziekOpdracht from './MuziekOpdracht';
 import GeluidOpdracht from './GeluidOpdracht';
@@ -12,7 +12,6 @@ import EmojiOpdracht from './EmojiOpdracht';
 import KaartOpdracht from './KaartOpdracht';
 import type { GeluidOpdrachtClient, KaartOpdrachtClient } from '@/config/opdrachten';
 import { getTeamFromCookie } from '@/lib/teamCookie';
-import { saveSessionTeam } from '@/lib/sessionClient';
 
 type SubmissionStatus = {
   submitted: boolean;
@@ -45,6 +44,7 @@ type Props = {
 };
 
 export default function OpdrachtPagina({ opdracht }: Props) {
+  const router = useRouter();
   const [teamNaam, setTeamNaam] = useState<string | null>(null);
   const [alGedaan, setAlGedaan] = useState(false);
   const [bestaandeAntwoorden, setBestaandeAntwoorden] = useState<unknown>(null);
@@ -91,34 +91,16 @@ export default function OpdrachtPagina({ opdracht }: Props) {
     };
   }, [opdracht.id, opdracht.type]);
 
-  async function handleTeamSelected(team: string) {
-    const ok = await saveSessionTeam(team);
-    if (!ok) return;
-
-    if (opdracht.type === 'gepland') {
-      setTeamNaam(team);
-      setGeladen(true);
-      return;
-    }
-
-    setTeamNaam(team);
-    setGeladen(false);
-    try {
-      const status = await fetchSubmissionStatus(team, opdracht.id);
-      setAlGedaan(isVoltooid(opdracht.type, status));
-      setBestaandeAntwoorden(status.antwoorden);
-    } catch {
-      setAlGedaan(false);
-    } finally {
-      setGeladen(true);
-    }
-  }
+  useEffect(() => {
+    if (!geladen || teamNaam) return;
+    router.replace(`/team?next=${encodeURIComponent(`/opdracht/${opdracht.id}`)}`);
+  }, [geladen, teamNaam, router, opdracht.id]);
 
   // Voorkom flash van teamkiezer bij page-load
   if (!geladen) return null;
 
   if (!teamNaam) {
-    return <TeamKiezer onTeamSelected={handleTeamSelected} />;
+    return null;
   }
 
   if (alGedaan) {

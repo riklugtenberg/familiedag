@@ -300,9 +300,7 @@ export default function AdminPage() {
         body: JSON.stringify({ pin: adminPin, id, status }),
       });
       if (!res.ok) throw new Error();
-      setFraudeMeldingen((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, status } : m))
-      );
+      setFraudeMeldingen((prev) => prev.map((m) => (m.id === id ? { ...m, status } : m)));
     } catch {
       alert('Beoordelen mislukt.');
     }
@@ -393,7 +391,7 @@ export default function AdminPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6 pt-4 gap-3 flex-wrap">
           <h1 className="text-2xl font-bold">Admin</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <button
               type="button"
               onClick={() => {
@@ -1355,8 +1353,8 @@ export default function AdminPage() {
                     melding.status === 'goedgekeurd'
                       ? 'border-green-300 bg-green-50'
                       : melding.status === 'afgewezen'
-                      ? 'border-gray-200 bg-gray-50'
-                      : 'border-red-200 bg-red-50'
+                        ? 'border-gray-200 bg-gray-50'
+                        : 'border-red-200 bg-red-50'
                   }`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
@@ -1365,21 +1363,29 @@ export default function AdminPage() {
                         {melding.melderTeam} meldt: {melding.beschuldigdTeam}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {new Date(melding.timestamp).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(melding.timestamp).toLocaleTimeString('nl-NL', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </p>
                     </div>
-                    <span className={`text-sm font-bold px-3 py-1 rounded-full ${
-                      melding.status === 'goedgekeurd'
-                        ? 'bg-green-200 text-green-800'
+                    <span
+                      className={`text-sm font-bold px-3 py-1 rounded-full ${
+                        melding.status === 'goedgekeurd'
+                          ? 'bg-green-200 text-green-800'
+                          : melding.status === 'afgewezen'
+                            ? 'bg-gray-200 text-gray-600'
+                            : 'bg-orange-100 text-orange-700'
+                      }`}
+                    >
+                      {melding.status === 'goedgekeurd'
+                        ? '✅ Goedgekeurd'
                         : melding.status === 'afgewezen'
-                        ? 'bg-gray-200 text-gray-600'
-                        : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {melding.status === 'goedgekeurd' ? '✅ Goedgekeurd' : melding.status === 'afgewezen' ? '✗ Afgewezen' : '⏳ Open'}
+                          ? '✗ Afgewezen'
+                          : '⏳ Open'}
                     </span>
                   </div>
 
-                  {/* Foto's */}
                   <div className="grid grid-cols-3 gap-2 mb-3">
                     {melding.fotoUrls.map((url, i) => (
                       <button
@@ -1399,7 +1405,6 @@ export default function AdminPage() {
                     ))}
                   </div>
 
-                  {/* Beoordeel knoppen */}
                   {melding.status === 'open' && (
                     <div className="flex gap-2">
                       <button
@@ -1408,7 +1413,8 @@ export default function AdminPage() {
                         className="flex-1 bg-green-600 text-white font-bold rounded-xl py-2 text-sm active:bg-green-700"
                         style={{ minHeight: '44px' }}
                       >
-                        ✅ Goedkeuren (+1 voor {melding.melderTeam}, −1 voor {melding.beschuldigdTeam})
+                        ✅ Goedkeuren (+1 voor {melding.melderTeam}, −1 voor{' '}
+                        {melding.beschuldigdTeam})
                       </button>
                       <button
                         type="button"

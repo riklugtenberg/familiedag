@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import Link from 'next/link';
 import type { KaartOpdrachtClient } from '@/config/opdrachten';
 
 const NederlandLeafletKlik = dynamic(() => import('@/components/NederlandLeafletKlik'), {
@@ -87,18 +86,6 @@ export default function KaartOpdracht({ opdracht, teamNaam }: Props) {
         <p className="text-lg text-gray-500 text-center mt-3">
           Jullie keuzes op de kaart zijn ontvangen.
         </p>
-        <Link
-          href="/"
-          className="mt-10 w-full max-w-xs bg-blue-600 text-white text-xl font-bold rounded-xl py-4 text-center active:bg-blue-700"
-          style={{
-            minHeight: '60px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          ← Terug naar beginscherm
-        </Link>
       </div>
     );
   }
