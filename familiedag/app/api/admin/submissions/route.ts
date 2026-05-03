@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { storageKeys, storageMget } from '@/lib/storage';
 
-const ADMIN_PIN = '1212';
+const ADMIN_PIN = '2525';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

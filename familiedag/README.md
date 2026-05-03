@@ -111,7 +111,7 @@ Gebruik een gratis QR-code generator zoals [qr-code-generator.com](https://www.q
 
 ## Admin-pagina
 
-Toegankelijk via `/admin`. Pincode: **1212**
+Toegankelijk via `/admin`. Vul op de pagina het wachtwoord in: **2525**
 
 - Quiz-scores worden automatisch berekend
 - Muziek-scores ken je handmatig toe (✓/✗ per fragment per team)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, startTransition } from 'react';
+import { useState, useEffect, useCallback, startTransition, type FormEvent } from 'react';
 import {
   opdrachten,
   teams,
@@ -16,8 +16,6 @@ import { fotoUrlsFromAntwoorden } from '@/lib/fotoAntwoorden';
 import { isQuizVraagOpen } from '@/lib/quizScoring';
 import { haversineKm } from '@/lib/haversineKm';
 import type { FraudeMelding } from '@/app/api/fraude/route';
-
-const ADMIN_PIN = '1212'; // tijdelijk niet in gebruik
 
 function formatKaartCoordNl(n: number): string {
   return n.toLocaleString('nl-NL', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
@@ -63,16 +61,27 @@ export default function AdminPage() {
   const [laden, setLaden] = useState(false);
   const [laadFout, setLaadFout] = useState('');
   const [fotoLightbox, setFotoLightbox] = useState<{ src: string; alt: string } | null>(null);
+  const [adminPin, setAdminPin] = useState<string | null>(null);
+  const [pinInvoer, setPinInvoer] = useState('');
+  const [pinFout, setPinFout] = useState(false);
 
   const laadData = useCallback(async () => {
+    if (!adminPin) return;
     setLaden(true);
     setLaadFout('');
     try {
+      const enc = encodeURIComponent(adminPin);
       const [subRes, scoresRes, fraudeRes] = await Promise.all([
-        fetch(`/api/admin/submissions?pin=${ADMIN_PIN}`),
-        fetch(`/api/scores?pin=${ADMIN_PIN}`),
+        fetch(`/api/admin/submissions?pin=${enc}`),
+        fetch(`/api/scores?pin=${enc}`),
         fetch('/api/fraude'),
       ]);
+      if (subRes.status === 401 || scoresRes.status === 401) {
+        setAdminPin(null);
+        setPinFout(true);
+        setPinInvoer('');
+        return;
+      }
       if (!subRes.ok || !scoresRes.ok || !fraudeRes.ok) throw new Error();
       const { inzendingen: sub } = await subRes.json();
       const { scores } = await scoresRes.json();
@@ -80,18 +89,20 @@ export default function AdminPage() {
       setInzendingen(sub ?? {});
       setJuryScores(scores ?? {});
       setFraudeMeldingen(meldingen ?? []);
+      setPinFout(false);
     } catch {
       setLaadFout('Laden mislukt. Controleer de KV verbinding.');
     } finally {
       setLaden(false);
     }
-  }, []);
+  }, [adminPin]);
 
   useEffect(() => {
+    if (!adminPin) return;
     startTransition(() => {
       void laadData();
     });
-  }, [laadData]);
+  }, [adminPin, laadData]);
 
   useEffect(() => {
     if (!fotoLightbox) return;
@@ -114,11 +125,12 @@ export default function AdminPage() {
     ) {
       return;
     }
+    if (!adminPin) return;
     try {
       const res = await fetch('/api/admin/wis-inzending', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: ADMIN_PIN, teamNaam, opdrachtId }),
+        body: JSON.stringify({ pin: adminPin, teamNaam, opdrachtId }),
       });
       if (!res.ok) throw new Error();
       await laadData();
@@ -138,12 +150,13 @@ export default function AdminPage() {
     ) {
       return;
     }
+    if (!adminPin) return;
     try {
       const res = await fetch('/api/admin/wis-inzending', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pin: ADMIN_PIN,
+          pin: adminPin,
           opdrachtId,
           wisAllesVoorOpdracht: true,
         }),
@@ -168,12 +181,13 @@ export default function AdminPage() {
     teamNaam: string,
     scores: MuziekJuryScore | FotoJuryScore
   ) {
+    if (!adminPin) return;
     const key = `juryScore:${opdrachtId}:${teamNaam}`;
     setJuryScores((prev) => ({ ...prev, [key]: scores }));
     await fetch('/api/scores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: ADMIN_PIN, opdrachtId, teamNaam, scores }),
+      body: JSON.stringify({ pin: adminPin, opdrachtId, teamNaam, scores }),
     });
   }
 
@@ -232,11 +246,12 @@ export default function AdminPage() {
   }
 
   async function beoordeelFraude(id: string, status: 'goedgekeurd' | 'afgewezen') {
+    if (!adminPin) return;
     try {
       const res = await fetch('/api/fraude/beoordelen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: ADMIN_PIN, id, status }),
+        body: JSON.stringify({ pin: adminPin, id, status }),
       });
       if (!res.ok) throw new Error();
       setFraudeMeldingen((prev) =>
@@ -244,6 +259,22 @@ export default function AdminPage() {
       );
     } catch {
       alert('Beoordelen mislukt.');
+    }
+  }
+
+  async function verwijderFraudeMelding(id: string) {
+    if (!adminPin) return;
+    if (!confirm('Deze melding permanent uit de database verwijderen?')) return;
+    try {
+      const res = await fetch('/api/fraude/beoordelen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: adminPin, id, verwijderen: true }),
+      });
+      if (!res.ok) throw new Error();
+      setFraudeMeldingen((prev) => prev.filter((m) => m.id !== id));
+    } catch {
+      alert('Verwijderen mislukt.');
     }
   }
 
@@ -261,20 +292,82 @@ export default function AdminPage() {
   const emojiOpdrachten = opdrachten.filter((o): o is EmojiOpdracht => o.type === 'emoji');
   const kaartOpdrachten = opdrachten.filter((o): o is KaartOpdracht => o.type === 'kaart');
 
+  function handleAdminLogin(e: FormEvent) {
+    e.preventDefault();
+    const p = pinInvoer.trim();
+    if (!p) return;
+    setPinFout(false);
+    setAdminPin(p);
+  }
+
+  if (!adminPin) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center pb-12">
+        <form
+          onSubmit={handleAdminLogin}
+          className="bg-white rounded-2xl shadow-sm p-8 max-w-sm w-full border border-gray-100"
+        >
+          <h1 className="text-2xl font-bold mb-2">Admin</h1>
+          <p className="text-sm text-gray-600 mb-6">Voer het beheerderswachtwoord in om door te gaan.</p>
+          <label htmlFor="admin-pin" className="block text-sm font-medium text-gray-700 mb-2">
+            Wachtwoord
+          </label>
+          <input
+            id="admin-pin"
+            type="password"
+            value={pinInvoer}
+            onChange={(e) => {
+              setPinInvoer(e.target.value);
+              setPinFout(false);
+            }}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            autoComplete="current-password"
+          />
+          {pinFout && (
+            <p className="text-sm text-red-600 mb-4" role="alert">
+              Onjuist wachtwoord.
+            </p>
+          )}
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white font-bold rounded-xl py-3 text-base active:bg-blue-700"
+            style={{ minHeight: '48px' }}
+          >
+            Ga verder
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 pb-12">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 pt-4">
+        <div className="flex items-center justify-between mb-6 pt-4 gap-3 flex-wrap">
           <h1 className="text-2xl font-bold">Admin</h1>
-          <button
-            onClick={laadData}
-            disabled={laden}
-            className="bg-blue-600 text-white font-bold rounded-xl px-6 py-3 text-base active:bg-blue-700 disabled:opacity-50"
-            style={{ minHeight: '48px' }}
-          >
-            {laden ? 'Laden…' : '🔄 Ververs'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setAdminPin(null);
+                setPinInvoer('');
+                setPinFout(false);
+              }}
+              className="font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-base active:bg-gray-200"
+              style={{ minHeight: '48px' }}
+            >
+              Afmelden
+            </button>
+            <button
+              onClick={laadData}
+              disabled={laden}
+              className="bg-blue-600 text-white font-bold rounded-xl px-6 py-3 text-base active:bg-blue-700 disabled:opacity-50"
+              style={{ minHeight: '48px' }}
+            >
+              {laden ? 'Laden…' : '🔄 Ververs'}
+            </button>
+          </div>
         </div>
 
         {laadFout && (
@@ -1165,6 +1258,15 @@ export default function AdminPage() {
                       </button>
                     </div>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={() => verwijderFraudeMelding(melding.id)}
+                    className="mt-3 w-full border border-red-200 text-red-700 font-semibold rounded-xl py-2 text-sm bg-white hover:bg-red-50 active:bg-red-100"
+                    style={{ minHeight: '44px' }}
+                  >
+                    Verwijderen uit database
+                  </button>
                 </div>
               ))}
             </div>

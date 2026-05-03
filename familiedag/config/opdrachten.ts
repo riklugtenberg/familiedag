@@ -491,10 +491,4 @@ export const opdrachten: Opdracht[] = [
       },
     ],
   },
-
-  // ── Opdracht 9 t/m 12 (inhoud volgt later) ─────────────────────────────────
-  { id: '9', type: 'gepland', naam: 'Opdracht 9' },
-  { id: '10', type: 'gepland', naam: 'Opdracht 10' },
-  { id: '11', type: 'gepland', naam: 'Opdracht 11' },
-  { id: '12', type: 'gepland', naam: 'Opdracht 12' },
 ];

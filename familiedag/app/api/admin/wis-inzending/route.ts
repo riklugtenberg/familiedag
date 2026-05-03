@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { teams, opdrachten } from '@/config/opdrachten';
 import { storageDelete } from '@/lib/storage';
 
-const ADMIN_PIN = '1212';
+const ADMIN_PIN = '2525';
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
