@@ -11,6 +11,7 @@ import {
   type FotoOpdracht,
   type EmojiOpdracht,
   type KaartOpdracht,
+  type TimingOpdracht,
 } from '@/config/opdrachten';
 import { fotoUrlsFromAntwoorden } from '@/lib/fotoAntwoorden';
 import { isQuizVraagOpen } from '@/lib/quizScoring';
@@ -41,6 +42,45 @@ function quizModelAntwoord(vraag: QuizVraag): string {
   if (hint) return hint;
   if (isQuizVraagOpen(vraag)) return '—';
   return vraag.opties[vraag.correct] ?? '—';
+}
+
+type TimingInzendingAntwoorden = {
+  pogingen: Array<number>;
+  besteTijd?: number;
+  doelTijd?: number;
+  voltooid?: boolean;
+};
+
+function parseTimingAntwoorden(raw: unknown): TimingInzendingAntwoorden | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  if (!Array.isArray(o.pogingen)) return null;
+  const pogingen = o.pogingen.filter((x): x is number => typeof x === 'number');
+  return {
+    pogingen,
+    besteTijd: typeof o.besteTijd === 'number' ? o.besteTijd : undefined,
+    doelTijd: typeof o.doelTijd === 'number' ? o.doelTijd : undefined,
+    voltooid: typeof o.voltooid === 'boolean' ? o.voltooid : undefined,
+  };
+}
+
+function formatTimingMs(ms: number): string {
+  return `${(ms / 1000).toFixed(2)}s`;
+}
+
+function timingAfwijkingSec(ms: number, doelSec: number): number {
+  return Math.abs(ms / 1000 - doelSec);
+}
+
+function besteTimingPogingIndex(pogingen: Array<number>, doelSec: number): number {
+  if (pogingen.length === 0) return -1;
+  return pogingen.reduce(
+    (best, _, i) =>
+      timingAfwijkingSec(pogingen[i], doelSec) < timingAfwijkingSec(pogingen[best], doelSec)
+        ? i
+        : best,
+    0
+  );
 }
 
 type Inzending = {
@@ -120,7 +160,7 @@ export default function AdminPage() {
   ) {
     if (
       !confirm(
-        `Inzending van ${teamNaam} voor “${titel}” verwijderen? Ook het jurycijfer (quiz/muziek/geluid/emoji/foto/kaart) voor dit team gaat mee.`
+        `Inzending van ${teamNaam} voor “${titel}” verwijderen? Ook het jurycijfer (quiz/muziek/geluid/emoji/foto/kaart/timing) voor dit team gaat mee.`
       )
     ) {
       return;
@@ -232,6 +272,11 @@ export default function AdminPage() {
     return score.scores.filter(Boolean).length;
   }
 
+  function berekenTimingScore(teamNaam: string, opdracht: TimingOpdracht): number {
+    const score = getJuryScore(opdracht.id, teamNaam) as FotoJuryScore | null;
+    return score?.punten ?? 0;
+  }
+
   function berekenTotaal(teamNaam: string): number {
     const opdrachtPunten = opdrachten.reduce((acc, opdracht) => {
       if (opdracht.type === 'quiz') return acc + berekenQuizScore(teamNaam, opdracht);
@@ -240,6 +285,7 @@ export default function AdminPage() {
       if (opdracht.type === 'foto') return acc + berekenFotoScore(teamNaam, opdracht);
       if (opdracht.type === 'emoji') return acc + berekenEmojiScore(teamNaam, opdracht);
       if (opdracht.type === 'kaart') return acc + berekenKaartScore(teamNaam, opdracht);
+      if (opdracht.type === 'timing') return acc + berekenTimingScore(teamNaam, opdracht);
       return acc;
     }, 0);
     return opdrachtPunten + berekenFraudeBonus(teamNaam) - berekenFraudeStraf(teamNaam);
@@ -291,6 +337,7 @@ export default function AdminPage() {
   const fotoOpdrachten = opdrachten.filter((o): o is FotoOpdracht => o.type === 'foto');
   const emojiOpdrachten = opdrachten.filter((o): o is EmojiOpdracht => o.type === 'emoji');
   const kaartOpdrachten = opdrachten.filter((o): o is KaartOpdracht => o.type === 'kaart');
+  const timingOpdrachten = opdrachten.filter((o): o is TimingOpdracht => o.type === 'timing');
 
   function handleAdminLogin(e: FormEvent) {
     e.preventDefault();
@@ -948,6 +995,121 @@ export default function AdminPage() {
             </div>
           </section>
         ))}
+
+        {/* TIMING SECTIES */}
+        {timingOpdrachten.map((opdracht) => {
+          const maxPogingen = opdracht.maxPogingen ?? 3;
+          return (
+            <section key={opdracht.id} className="bg-white rounded-2xl shadow-sm p-5 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="text-xl font-bold">⏱ {opdracht.naam}</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Doel: <span className="font-semibold text-gray-700">{opdracht.doelTijd}s</span>
+                    {' · '}
+                    max <span className="font-semibold text-gray-700">{maxPogingen}</span> pogingen
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
+                  }
+                  className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
+                  style={{ minHeight: '40px' }}
+                >
+                  Wis alle inzendingen
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {teams.map((team) => {
+                  const inzending = getInzending(team, opdracht.id);
+                  const parsed = parseTimingAntwoorden(inzending?.antwoorden);
+                  const juryScore = getJuryScore(opdracht.id, team) as FotoJuryScore | null;
+                  const punten = juryScore?.punten ?? '';
+                  const heeftData = Boolean(parsed && parsed.pogingen.length > 0);
+                  const klaar = Boolean(parsed?.voltooid);
+                  const besteIdx =
+                    parsed && parsed.pogingen.length > 0
+                      ? besteTimingPogingIndex(parsed.pogingen, opdracht.doelTijd)
+                      : -1;
+
+                  return (
+                    <div key={team} className="border border-gray-200 rounded-xl p-4">
+                      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                        <p className="font-bold text-base">{team}</p>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {heeftData ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                verwijderInzending(team, opdracht.id, opdracht.naam)
+                              }
+                              className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 active:bg-red-100 whitespace-nowrap"
+                            >
+                              Wis inzending
+                            </button>
+                          ) : null}
+                          <span className="text-xl" title={klaar ? 'Afgerond' : heeftData ? 'Bezig' : 'Geen data'}>
+                            {!heeftData ? '❌' : klaar ? '✅' : '⏳'}
+                          </span>
+                        </div>
+                      </div>
+                      {!heeftData || !parsed ? (
+                        <p className="text-sm text-gray-400">Nog geen pogingen opgeslagen</p>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          <ul className="flex flex-col gap-1.5">
+                            {parsed.pogingen.map((ms, i) => {
+                              const afw = timingAfwijkingSec(ms, opdracht.doelTijd);
+                              const isBeste = i === besteIdx && parsed.pogingen.length > 1;
+                              return (
+                                <li
+                                  key={i}
+                                  className={`flex items-center justify-between text-sm rounded-lg border px-3 py-2 ${
+                                    isBeste
+                                      ? 'border-green-300 bg-green-50'
+                                      : 'border-gray-100 bg-gray-50'
+                                  }`}
+                                >
+                                  <span className="font-medium text-gray-700">Poging {i + 1}</span>
+                                  <span className="text-right">
+                                    <span className="font-bold text-gray-900">{formatTimingMs(ms)}</span>
+                                    <span className="text-gray-500 ml-2">± {afw.toFixed(2)}s</span>
+                                    {isBeste ? (
+                                      <span className="ml-2 text-xs font-bold text-green-700">beste</span>
+                                    ) : null}
+                                  </span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <label className="text-sm font-semibold text-gray-700">
+                              Punten (0–10):
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={10}
+                              value={punten}
+                              onChange={(e) => {
+                                const p = Math.min(10, Math.max(0, Number(e.target.value)));
+                                slaJuryScoreOp(opdracht.id, team, { punten: p });
+                              }}
+                              className="w-20 border-2 border-gray-300 rounded-lg p-2 text-center text-lg font-bold focus:border-blue-500 focus:outline-none"
+                              style={{ minHeight: '48px', fontSize: '18px' }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
 
         {/* FOTO SECTIES */}
         {fotoOpdrachten.map((opdracht) => (
