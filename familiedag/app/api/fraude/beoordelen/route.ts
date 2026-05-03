@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { storageGet, storageSet, storageDelete } from '@/lib/storage';
 import type { FraudeMelding } from '../route';
 
-const ADMIN_PIN = '2525';
+const ADMIN_PIN = '1212';
 
 export async function POST(req: NextRequest) {
   const body = await req.json();

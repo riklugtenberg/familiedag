@@ -111,26 +111,19 @@ export default function AdminPage() {
   const [laadFout, setLaadFout] = useState('');
   const [fotoLightbox, setFotoLightbox] = useState<{ src: string; alt: string } | null>(null);
   const [adminPin, setAdminPin] = useState<string | null>(null);
+  const [toonLoginModal, setToonLoginModal] = useState(false);
   const [pinInvoer, setPinInvoer] = useState('');
   const [pinFout, setPinFout] = useState(false);
 
   const laadData = useCallback(async () => {
-    if (!adminPin) return;
     setLaden(true);
     setLaadFout('');
     try {
-      const enc = encodeURIComponent(adminPin);
       const [subRes, scoresRes, fraudeRes] = await Promise.all([
-        fetch(`/api/admin/submissions?pin=${enc}`),
-        fetch(`/api/scores?pin=${enc}`),
+        fetch('/api/admin/submissions'),
+        fetch('/api/scores'),
         fetch('/api/fraude'),
       ]);
-      if (subRes.status === 401 || scoresRes.status === 401) {
-        setAdminPin(null);
-        setPinFout(true);
-        setPinInvoer('');
-        return;
-      }
       if (!subRes.ok || !scoresRes.ok || !fraudeRes.ok) throw new Error();
       const { inzendingen: sub } = await subRes.json();
       const { scores } = await scoresRes.json();
@@ -138,20 +131,18 @@ export default function AdminPage() {
       setInzendingen(sub ?? {});
       setJuryScores(scores ?? {});
       setFraudeMeldingen(meldingen ?? []);
-      setPinFout(false);
     } catch {
       setLaadFout('Laden mislukt. Controleer de KV verbinding.');
     } finally {
       setLaden(false);
     }
-  }, [adminPin]);
+  }, []);
 
   useEffect(() => {
-    if (!adminPin) return;
     startTransition(() => {
       void laadData();
     });
-  }, [adminPin, laadData]);
+  }, [laadData]);
 
   useEffect(() => {
     if (!fotoLightbox) return;
@@ -356,49 +347,14 @@ export default function AdminPage() {
   function handleAdminLogin(e: FormEvent) {
     e.preventDefault();
     const p = pinInvoer.trim();
-    if (!p) return;
-    setPinFout(false);
-    setAdminPin(p);
-  }
-
-  if (!adminPin) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center pb-12">
-        <form
-          onSubmit={handleAdminLogin}
-          className="bg-white rounded-2xl shadow-sm p-8 max-w-sm w-full border border-gray-100"
-        >
-          <h1 className="text-2xl font-bold mb-2">Admin</h1>
-          <p className="text-sm text-gray-600 mb-6">Voer het beheerderswachtwoord in om door te gaan.</p>
-          <label htmlFor="admin-pin" className="block text-sm font-medium text-gray-700 mb-2">
-            Wachtwoord
-          </label>
-          <input
-            id="admin-pin"
-            type="password"
-            value={pinInvoer}
-            onChange={(e) => {
-              setPinInvoer(e.target.value);
-              setPinFout(false);
-            }}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            autoComplete="current-password"
-          />
-          {pinFout && (
-            <p className="text-sm text-red-600 mb-4" role="alert">
-              Onjuist wachtwoord.
-            </p>
-          )}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white font-bold rounded-xl py-3 text-base active:bg-blue-700"
-            style={{ minHeight: '48px' }}
-          >
-            Ga verder
-          </button>
-        </form>
-      </div>
-    );
+    if (p === '1212') {
+      setAdminPin(p);
+      setToonLoginModal(false);
+      setPinInvoer('');
+      setPinFout(false);
+    } else {
+      setPinFout(true);
+    }
   }
 
   return (
@@ -408,18 +364,29 @@ export default function AdminPage() {
         <div className="flex items-center justify-between mb-6 pt-4 gap-3 flex-wrap">
           <h1 className="text-2xl font-bold">Admin</h1>
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            <button
-              type="button"
-              onClick={() => {
-                setAdminPin(null);
-                setPinInvoer('');
-                setPinFout(false);
-              }}
-              className="font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-base active:bg-gray-200"
-              style={{ minHeight: '48px' }}
-            >
-              Afmelden
-            </button>
+            {adminPin ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setAdminPin(null);
+                  setPinInvoer('');
+                  setPinFout(false);
+                }}
+                className="font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-base active:bg-gray-200"
+                style={{ minHeight: '48px' }}
+              >
+                Afmelden
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setToonLoginModal(true)}
+                className="font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-base active:bg-blue-100"
+                style={{ minHeight: '48px' }}
+              >
+                Inloggen als admin
+              </button>
+            )}
             <button
               onClick={laadData}
               disabled={laden}
@@ -430,6 +397,12 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+
+        {!adminPin && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-amber-800 text-sm">
+            Je bekijkt de admin pagina als gast. Log in als admin om scores te wijzigen of inzendingen te verwijderen.
+          </div>
+        )}
 
         {laadFout && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 text-red-700">
@@ -442,16 +415,18 @@ export default function AdminPage() {
           <section key={opdracht.id} className="bg-white rounded-2xl shadow-sm p-5 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h2 className="text-xl font-bold">📝 {opdracht.naam}</h2>
-              <button
-                type="button"
-                onClick={() =>
-                  verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
-                }
-                className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
-                style={{ minHeight: '40px' }}
-              >
-                Wis alle inzendingen
-              </button>
+              {adminPin && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
+                  }
+                  className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
+                  style={{ minHeight: '40px' }}
+                >
+                  Wis alle inzendingen
+                </button>
+              )}
             </div>
             <p className="text-sm text-gray-500 mb-3">
               Per vraag en per team: <span className="font-semibold text-green-700">✓</span> goed,{' '}
@@ -476,7 +451,7 @@ export default function AdminPage() {
                               {t}{' '}
                               <span className="font-normal">{heeftIngestuurd ? '✅' : '❌'}</span>
                             </span>
-                            {heeftIngestuurd && (
+                            {heeftIngestuurd && adminPin && (
                               <button
                                 type="button"
                                 onClick={() => verwijderInzending(t, opdracht.id, opdracht.naam)}
@@ -527,7 +502,8 @@ export default function AdminPage() {
                                       nieuw[vi] = true;
                                       slaJuryScoreOp(opdracht.id, team, { scores: nieuw });
                                     }}
-                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors ${
+                                    disabled={!adminPin}
+                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                                       juist === true
                                         ? 'bg-green-500 text-white'
                                         : 'bg-gray-100 text-gray-400'
@@ -545,7 +521,8 @@ export default function AdminPage() {
                                       nieuw[vi] = false;
                                       slaJuryScoreOp(opdracht.id, team, { scores: nieuw });
                                     }}
-                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors ${
+                                    disabled={!adminPin}
+                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                                       juist === false
                                         ? 'bg-red-500 text-white'
                                         : 'bg-gray-100 text-gray-400'
@@ -581,16 +558,18 @@ export default function AdminPage() {
           <section key={opdracht.id} className="bg-white rounded-2xl shadow-sm p-5 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h2 className="text-xl font-bold">🗺️ {opdracht.naam}</h2>
-              <button
-                type="button"
-                onClick={() =>
-                  verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
-                }
-                className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
-                style={{ minHeight: '40px' }}
-              >
-                Wis alle inzendingen
-              </button>
+              {adminPin && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
+                  }
+                  className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
+                  style={{ minHeight: '40px' }}
+                >
+                  Wis alle inzendingen
+                </button>
+              )}
             </div>
             <p className="text-sm text-gray-500 mb-3">
               Kolom <span className="font-semibold">Referentie</span>: plek en coördinaten uit de
@@ -612,7 +591,7 @@ export default function AdminPage() {
                               {t}{' '}
                               <span className="font-normal">{heeftIngestuurd ? '✅' : '❌'}</span>
                             </span>
-                            {heeftIngestuurd && (
+                            {heeftIngestuurd && adminPin && (
                               <button
                                 type="button"
                                 onClick={() => verwijderInzending(t, opdracht.id, opdracht.naam)}
@@ -678,7 +657,8 @@ export default function AdminPage() {
                                       nieuw[vi] = true;
                                       slaJuryScoreOp(opdracht.id, team, { scores: nieuw });
                                     }}
-                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors ${
+                                    disabled={!adminPin}
+                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                                       juist === true
                                         ? 'bg-green-500 text-white'
                                         : 'bg-gray-100 text-gray-400'
@@ -696,7 +676,8 @@ export default function AdminPage() {
                                       nieuw[vi] = false;
                                       slaJuryScoreOp(opdracht.id, team, { scores: nieuw });
                                     }}
-                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors ${
+                                    disabled={!adminPin}
+                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                                       juist === false
                                         ? 'bg-red-500 text-white'
                                         : 'bg-gray-100 text-gray-400'
@@ -735,16 +716,18 @@ export default function AdminPage() {
           <section key={opdracht.id} className="bg-white rounded-2xl shadow-sm p-5 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h2 className="text-xl font-bold">🎵 {opdracht.naam}</h2>
-              <button
-                type="button"
-                onClick={() =>
-                  verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
-                }
-                className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
-                style={{ minHeight: '40px' }}
-              >
-                Wis alle inzendingen
-              </button>
+              {adminPin && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
+                  }
+                  className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
+                  style={{ minHeight: '40px' }}
+                >
+                  Wis alle inzendingen
+                </button>
+              )}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
@@ -767,7 +750,7 @@ export default function AdminPage() {
                                 {heeftIngestuurd ? '✅' : '❌'}
                               </span>
                             </span>
-                            {heeftIngestuurd ? (
+                            {heeftIngestuurd && adminPin ? (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -819,7 +802,8 @@ export default function AdminPage() {
                                       nieuw[fi] = true;
                                       slaJuryScoreOp(opdracht.id, team, { scores: nieuw });
                                     }}
-                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors ${
+                                    disabled={!adminPin}
+                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                                       fragmentCorrect === true
                                         ? 'bg-green-500 text-white'
                                         : 'bg-gray-100 text-gray-400'
@@ -834,7 +818,8 @@ export default function AdminPage() {
                                       nieuw[fi] = false;
                                       slaJuryScoreOp(opdracht.id, team, { scores: nieuw });
                                     }}
-                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors ${
+                                    disabled={!adminPin}
+                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                                       fragmentCorrect === false
                                         ? 'bg-red-500 text-white'
                                         : 'bg-gray-100 text-gray-400'
@@ -873,16 +858,18 @@ export default function AdminPage() {
           <section key={opdracht.id} className="bg-white rounded-2xl shadow-sm p-5 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h2 className="text-xl font-bold">🔊 {opdracht.naam}</h2>
-              <button
-                type="button"
-                onClick={() =>
-                  verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
-                }
-                className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
-                style={{ minHeight: '40px' }}
-              >
-                Wis alle inzendingen
-              </button>
+              {adminPin && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
+                  }
+                  className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
+                  style={{ minHeight: '40px' }}
+                >
+                  Wis alle inzendingen
+                </button>
+              )}
             </div>
             <p className="text-sm text-gray-500 mb-3">
               Per fragment: referentie uit de config. Per team ✓/✗ naar eigen oordeel.
@@ -908,7 +895,7 @@ export default function AdminPage() {
                                 {heeftIngestuurd ? '✅' : '❌'}
                               </span>
                             </span>
-                            {heeftIngestuurd ? (
+                            {heeftIngestuurd && adminPin ? (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -1053,7 +1040,7 @@ export default function AdminPage() {
                       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                         <p className="font-bold text-base">{team}</p>
                         <div className="flex items-center gap-2 shrink-0">
-                          {heeftData ? (
+                          {heeftData && adminPin ? (
                             <button
                               type="button"
                               onClick={() =>
@@ -1111,7 +1098,8 @@ export default function AdminPage() {
                                 const p = Math.min(10, Math.max(0, Number(e.target.value)));
                                 slaJuryScoreOp(opdracht.id, team, { punten: p });
                               }}
-                              className="w-20 border-2 border-gray-300 rounded-lg p-2 text-center text-lg font-bold focus:border-blue-500 focus:outline-none"
+                              disabled={!adminPin}
+                              className="w-20 border-2 border-gray-300 rounded-lg p-2 text-center text-lg font-bold focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                               style={{ minHeight: '48px', fontSize: '18px' }}
                             />
                           </div>
@@ -1155,7 +1143,7 @@ export default function AdminPage() {
                       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                         <p className="font-bold text-base">{team}</p>
                         <div className="flex items-center gap-2 shrink-0">
-                          {inzending ? (
+                          {inzending && adminPin ? (
                             <button
                               type="button"
                               onClick={() =>
@@ -1192,7 +1180,8 @@ export default function AdminPage() {
                                 const p = Math.min(10, Math.max(0, Number(e.target.value)));
                                 slaJuryScoreOp(opdracht.id, team, { punten: p });
                               }}
-                              className="w-20 border-2 border-gray-300 rounded-lg p-2 text-center text-lg font-bold focus:border-blue-500 focus:outline-none"
+                              disabled={!adminPin}
+                              className="w-20 border-2 border-gray-300 rounded-lg p-2 text-center text-lg font-bold focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                               style={{ minHeight: '48px', fontSize: '18px' }}
                             />
                           </div>
@@ -1211,16 +1200,18 @@ export default function AdminPage() {
           <section key={opdracht.id} className="bg-white rounded-2xl shadow-sm p-5 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h2 className="text-xl font-bold">📷 {opdracht.naam}</h2>
-              <button
-                type="button"
-                onClick={() =>
-                  verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
-                }
-                className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
-                style={{ minHeight: '40px' }}
-              >
-                Wis alle inzendingen
-              </button>
+              {adminPin && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    verwijderAlleInzendingenVoorOpdracht(opdracht.id, opdracht.naam)
+                  }
+                  className="shrink-0 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 active:bg-red-100"
+                  style={{ minHeight: '40px' }}
+                >
+                  Wis alle inzendingen
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {teams.map((team) => {
@@ -1234,7 +1225,7 @@ export default function AdminPage() {
                     <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                       <p className="font-bold text-base">{team}</p>
                       <div className="flex items-center gap-2 shrink-0">
-                        {inzending ? (
+                        {inzending && adminPin ? (
                           <button
                             type="button"
                             onClick={() =>
@@ -1313,7 +1304,8 @@ export default function AdminPage() {
                               const p = Math.min(10, Math.max(0, Number(e.target.value)));
                               slaJuryScoreOp(opdracht.id, team, { punten: p });
                             }}
-                            className="w-20 border-2 border-gray-300 rounded-lg p-2 text-center text-lg font-bold focus:border-blue-500 focus:outline-none"
+                            disabled={!adminPin}
+                            className="w-20 border-2 border-gray-300 rounded-lg p-2 text-center text-lg font-bold focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ minHeight: '48px', fontSize: '18px' }}
                           />
                         </div>
@@ -1354,7 +1346,7 @@ export default function AdminPage() {
                             <span className="whitespace-nowrap">
                               {t} <span className="font-normal">{heeftIngestuurd ? '✅' : '❌'}</span>
                             </span>
-                            {heeftIngestuurd && (
+                            {heeftIngestuurd && adminPin && (
                               <button
                                 type="button"
                                 onClick={() => verwijderInzending(t, opdracht.id, opdracht.naam)}
@@ -1398,7 +1390,8 @@ export default function AdminPage() {
                                       nieuw[vi] = true;
                                       slaJuryScoreOp(opdracht.id, team, { scores: nieuw });
                                     }}
-                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors ${correct === true ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}
+                                    disabled={!adminPin}
+                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${correct === true ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}
                                   >
                                     ✓
                                   </button>
@@ -1409,7 +1402,8 @@ export default function AdminPage() {
                                       nieuw[vi] = false;
                                       slaJuryScoreOp(opdracht.id, team, { scores: nieuw });
                                     }}
-                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors ${correct === false ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400'}`}
+                                    disabled={!adminPin}
+                                    className={`w-10 h-10 rounded-lg text-lg font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${correct === false ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400'}`}
                                   >
                                     ✗
                                   </button>
@@ -1502,7 +1496,7 @@ export default function AdminPage() {
                     ))}
                   </div>
 
-                  {melding.status === 'open' && (
+                  {melding.status === 'open' && adminPin && (
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -1524,14 +1518,16 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => verwijderFraudeMelding(melding.id)}
-                    className="mt-3 w-full border border-red-200 text-red-700 font-semibold rounded-xl py-2 text-sm bg-white hover:bg-red-50 active:bg-red-100"
-                    style={{ minHeight: '44px' }}
-                  >
-                    Verwijderen uit database
-                  </button>
+                  {adminPin && (
+                    <button
+                      type="button"
+                      onClick={() => verwijderFraudeMelding(melding.id)}
+                      className="mt-3 w-full border border-red-200 text-red-700 font-semibold rounded-xl py-2 text-sm bg-white hover:bg-red-50 active:bg-red-100"
+                      style={{ minHeight: '44px' }}
+                    >
+                      Verwijderen uit database
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -1592,6 +1588,54 @@ export default function AdminPage() {
           <p className="absolute bottom-4 left-0 right-0 text-center text-xs text-white/70 pointer-events-none">
             Klik buiten de foto of druk op Esc om te sluiten
           </p>
+        </div>
+      )}
+
+      {toonLoginModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => { setToonLoginModal(false); setPinInvoer(''); setPinFout(false); }}
+        >
+          <form
+            onSubmit={handleAdminLogin}
+            className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold mb-2">Inloggen als admin</h2>
+            <p className="text-sm text-gray-600 mb-6">Voer de beheerderspincode in.</p>
+            <label htmlFor="admin-pin" className="block text-sm font-medium text-gray-700 mb-2">
+              Pincode
+            </label>
+            <input
+              id="admin-pin"
+              type="password"
+              value={pinInvoer}
+              onChange={(e) => { setPinInvoer(e.target.value); setPinFout(false); }}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              autoComplete="current-password"
+              autoFocus
+            />
+            {pinFout && (
+              <p className="text-sm text-red-600 mb-4" role="alert">Onjuiste pincode.</p>
+            )}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setToonLoginModal(false); setPinInvoer(''); setPinFout(false); }}
+                className="flex-1 font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-xl py-3 text-base active:bg-gray-200"
+                style={{ minHeight: '48px' }}
+              >
+                Annuleren
+              </button>
+              <button
+                type="submit"
+                className="flex-1 bg-blue-600 text-white font-bold rounded-xl py-3 text-base active:bg-blue-700"
+                style={{ minHeight: '48px' }}
+              >
+                Inloggen
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
