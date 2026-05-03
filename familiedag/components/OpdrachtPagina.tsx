@@ -10,6 +10,7 @@ import FotoOpdracht from './FotoOpdracht';
 import TimingOpdracht from './TimingOpdracht';
 import EmojiOpdracht from './EmojiOpdracht';
 import KaartOpdracht from './KaartOpdracht';
+import AantalOpdracht from './AantalOpdracht';
 import type { GeluidOpdrachtClient, KaartOpdrachtClient } from '@/config/opdrachten';
 import { getTeamFromCookie } from '@/lib/teamCookie';
 
@@ -161,6 +162,10 @@ export default function OpdrachtPagina({ opdracht }: Props) {
         initialPogingen={a?.pogingen ?? []}
       />
     );
+  }
+
+  if (opdracht.type === 'aantal') {
+    return <AantalOpdracht opdracht={opdracht} teamNaam={teamNaam} />;
   }
 
   return null;

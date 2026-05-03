@@ -15,6 +15,7 @@ const typeEmoji: Record<string, string> = {
   emoji: '🔤',
   kaart: '🗺️',
   gepland: '📋',
+  aantal: '🔢',
 };
 
 export default function HomePage() {

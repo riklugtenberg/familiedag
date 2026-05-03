@@ -111,6 +111,15 @@ export type EmojiOpdracht = {
   vragen: EmojiVraag[];
 };
 
+/** Teams vullen één getal in; de jury vult punten in via admin (zoals foto/timing). */
+export type AantalOpdracht = {
+  id: string;
+  type: 'aantal';
+  naam: string;
+  /** Label bij het getalveld, bv. "Aantal blokken". */
+  veldLabel?: string;
+};
+
 /** Placeholder tot de opdracht is ingevuld; geen inzending. */
 export type GeplandeOpdracht = {
   id: string;
@@ -149,6 +158,7 @@ export type Opdracht =
   | TimingOpdracht
   | EmojiOpdracht
   | KaartOpdracht
+  | AantalOpdracht
   | GeplandeOpdracht;
 
 export const teams: Array<string> = [
@@ -490,5 +500,21 @@ export const opdrachten: Opdracht[] = [
         antwoordJury: 'OV-chipkaart inchecken / inchecken in bus of trein (OV)',
       },
     ],
+  },
+
+  // ── Opdracht 9 ─────────────────────────────────────────────────────────────
+  {
+    id: '9',
+    type: 'aantal',
+    naam: 'Jenga',
+    veldLabel: 'Aantal blokken',
+  },
+
+  // ── Opdracht 10 ────────────────────────────────────────────────────────────
+  {
+    id: '10',
+    type: 'aantal',
+    naam: 'Koe melken',
+    veldLabel: 'Aantal',
   },
 ];

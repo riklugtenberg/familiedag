@@ -16,6 +16,7 @@ const typeEmoji: Record<string, string> = {
   emoji: '🔤',
   kaart: '🗺️',
   gepland: '📋',
+  aantal: '🔢',
 };
 
 const typeKleur: Record<string, string> = {
@@ -27,6 +28,7 @@ const typeKleur: Record<string, string> = {
   emoji: 'bg-pink-50 border-pink-200',
   kaart: 'bg-cyan-50 border-cyan-200',
   gepland: 'bg-gray-50 border-gray-200',
+  aantal: 'bg-teal-50 border-teal-200',
 };
 
 function opdrachtVoorId(id: string) {
