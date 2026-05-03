@@ -154,7 +154,7 @@ export type Opdracht =
 export const teams: Array<string> = [
   'Christel',
   'Kim',
-  'Mariët',
+  'Mariet',
   'Ben',
   'Jolien',
 ];
